@@ -1,5 +1,6 @@
 import * as Icons from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/utils/cn";
 import { recentActivities } from "@/data/dummy";
 
@@ -18,6 +19,13 @@ export function RecentActivity() {
         <CardTitle>Aktivitas Terbaru</CardTitle>
       </CardHeader>
       <CardContent>
+        {recentActivities.length === 0 ? (
+          <EmptyState
+            icon={Icons.Activity}
+            title="Belum ada aktivitas"
+            description="Aktivitas terbaru akan muncul di sini."
+          />
+        ) : (
         <div className="space-y-4">
           {recentActivities.map((act, idx) => {
             const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[act.icon] ?? Icons.Circle;
@@ -38,6 +46,7 @@ export function RecentActivity() {
             );
           })}
         </div>
+        )}
       </CardContent>
     </Card>
   );

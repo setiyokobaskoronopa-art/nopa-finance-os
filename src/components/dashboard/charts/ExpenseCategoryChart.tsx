@@ -1,10 +1,22 @@
 import Chart from "react-apexcharts";
+import { PieChart } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { expenseCategorySeries } from "@/data/dummy";
 
 export function ExpenseCategoryChart() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+
+  if (expenseCategorySeries.length === 0) {
+    return (
+      <EmptyState
+        icon={PieChart}
+        title="Belum ada data pengeluaran"
+        description="Grafik kategori akan terisi setelah ada pengeluaran tercatat."
+      />
+    );
+  }
 
   const options: ApexCharts.ApexOptions = {
     chart: {

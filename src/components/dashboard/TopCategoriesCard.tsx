@@ -1,4 +1,6 @@
+import { PieChart } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { formatCurrency } from "@/utils/format";
 import { topCategories } from "@/data/dummy";
 
@@ -11,7 +13,15 @@ export function TopCategoriesCard() {
         <CardTitle>Kategori Teratas</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {topCategories.map((c, idx) => (
+        {topCategories.length === 0 ? (
+          <EmptyState
+            icon={PieChart}
+            title="Belum ada kategori"
+            description="Kategori pengeluaran teratas akan muncul di sini."
+            compact
+          />
+        ) : (
+        topCategories.map((c, idx) => (
           <div key={c.id}>
             <div className="mb-1.5 flex items-center justify-between text-sm">
               <span className="font-medium text-secondary-700 dark:text-secondary-200">{c.name}</span>
@@ -24,7 +34,8 @@ export function TopCategoriesCard() {
               />
             </div>
           </div>
-        ))}
+        ))
+        )}
       </CardContent>
     </Card>
   );

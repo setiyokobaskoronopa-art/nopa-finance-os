@@ -1,6 +1,7 @@
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Receipt } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/utils/cn";
 import { formatCurrency } from "@/utils/format";
 import { recentTransactions } from "@/data/dummy";
@@ -27,6 +28,13 @@ export function RecentTransactions() {
         </button>
       </CardHeader>
       <CardContent className="p-0">
+        {recentTransactions.length === 0 ? (
+          <EmptyState
+            icon={Receipt}
+            title="Belum ada transaksi"
+            description="Transaksi yang Anda catat akan muncul di sini."
+          />
+        ) : (
         <div className="scrollbar-thin max-h-[380px] overflow-y-auto">
           {recentTransactions.map((tx) => (
             <div
@@ -64,6 +72,7 @@ export function RecentTransactions() {
             </div>
           ))}
         </div>
+        )}
       </CardContent>
     </Card>
   );

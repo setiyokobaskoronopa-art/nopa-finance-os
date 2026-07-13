@@ -1,11 +1,24 @@
 import Chart from "react-apexcharts";
+import { BarChart3 } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { formatCurrency } from "@/utils/format";
 import { profitSeries } from "@/data/dummy";
 
 export function ProfitChart() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+
+  const hasData = profitSeries.profit.some((v) => v > 0);
+  if (!hasData) {
+    return (
+      <EmptyState
+        icon={BarChart3}
+        title="Belum ada data profit"
+        description="Grafik profit bulanan akan terisi setelah ada pemasukan tercatat."
+      />
+    );
+  }
 
   const options: ApexCharts.ApexOptions = {
     chart: {

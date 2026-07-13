@@ -1,13 +1,22 @@
 import type { GenericRow, TableColumn } from "@/types/finance";
 import { cn } from "@/utils/cn";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export function DataTable<T extends GenericRow>({
   columns,
   rows,
+  emptyTitle = "Belum ada data",
+  emptyDescription = "Data akan muncul di sini setelah Anda menambahkannya.",
 }: {
   columns: TableColumn<T>[];
   rows: T[];
+  emptyTitle?: string;
+  emptyDescription?: string;
 }) {
+  if (rows.length === 0) {
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+  }
+
   return (
     <div className="scrollbar-thin overflow-x-auto">
       <table className="w-full min-w-[640px] text-left text-sm">

@@ -128,9 +128,9 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 
         <div className="mx-3 mb-4 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-4 text-white shadow-glow">
           <p className="text-xs font-semibold uppercase tracking-wide text-primary-100">Target Pernikahan</p>
-          <p className="mt-1 text-lg font-bold">62% Tercapai</p>
+          <p className="mt-1 text-lg font-bold">Belum ada data</p>
           <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-            <div className="h-full w-[62%] rounded-full bg-white" />
+            <div className="h-full w-0 rounded-full bg-white" />
           </div>
           <p className="mt-2 text-[11px] text-primary-100">14 Agustus 2026 · Kalasan, Sleman</p>
         </div>

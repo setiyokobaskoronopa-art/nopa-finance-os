@@ -1,6 +1,7 @@
 import * as Icons from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Progress } from "@/components/ui/Progress";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { formatCurrency } from "@/utils/format";
 import { budgetProgress } from "@/data/dummy";
 
@@ -11,7 +12,15 @@ export function BudgetProgressCard() {
         <CardTitle>Progress Budget</CardTitle>
       </CardHeader>
       <CardContent className="space-y-5">
-        {budgetProgress.map((b) => {
+        {budgetProgress.length === 0 ? (
+          <EmptyState
+            icon={Icons.CreditCard}
+            title="Belum ada budget"
+            description="Buat alokasi budget untuk mulai memantau pengeluaran."
+            compact
+          />
+        ) : (
+        budgetProgress.map((b) => {
           const pct = Math.min(100, Math.round((b.spent / b.limit) * 100));
           const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[b.icon] ?? Icons.Circle;
           const isHigh = pct >= 80;
@@ -38,7 +47,8 @@ export function BudgetProgressCard() {
               </p>
             </div>
           );
-        })}
+        })
+        )}
       </CardContent>
     </Card>
   );

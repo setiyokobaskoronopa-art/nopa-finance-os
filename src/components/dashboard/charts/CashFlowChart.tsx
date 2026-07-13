@@ -1,11 +1,24 @@
 import Chart from "react-apexcharts";
+import { LineChart } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { formatCurrency } from "@/utils/format";
 import { cashFlowSeries } from "@/data/dummy";
 
 export function CashFlowChart() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+
+  const hasData = cashFlowSeries.income.some((v) => v > 0) || cashFlowSeries.expense.some((v) => v > 0);
+  if (!hasData) {
+    return (
+      <EmptyState
+        icon={LineChart}
+        title="Belum ada data cash flow"
+        description="Grafik akan terisi setelah ada transaksi pemasukan atau pengeluaran."
+      />
+    );
+  }
 
   const options: ApexCharts.ApexOptions = {
     chart: {

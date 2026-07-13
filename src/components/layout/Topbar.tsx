@@ -55,7 +55,6 @@ export function Topbar({ onOpenMobileSidebar }: { onOpenMobileSidebar: () => voi
             aria-label="Notifications"
           >
             <Bell size={18} />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger-500 ring-2 ring-white dark:ring-secondary-900" />
           </button>
           <NotificationPanel open={notifOpen} onClose={() => setNotifOpen(false)} />
         </div>

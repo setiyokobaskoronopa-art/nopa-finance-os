@@ -1,4 +1,7 @@
+import { Landmark, Plus } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/utils/format";
 import { bankAccounts } from "@/data/dummy";
 
@@ -11,8 +14,20 @@ export function BankBalanceCard() {
           Kelola
         </button>
       </CardHeader>
-      <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {bankAccounts.map((acc) => (
+      <CardContent className={bankAccounts.length === 0 ? "" : "grid grid-cols-1 gap-3 sm:grid-cols-2"}>
+        {bankAccounts.length === 0 ? (
+          <EmptyState
+            icon={Landmark}
+            title="Belum ada rekening"
+            description="Tambahkan rekening bank untuk mulai memantau saldo."
+            action={
+              <Button size="sm">
+                <Plus size={14} /> Tambah Rekening
+              </Button>
+            }
+          />
+        ) : (
+        bankAccounts.map((acc) => (
           <div
             key={acc.id}
             className="relative overflow-hidden rounded-2xl p-4 text-white shadow-soft transition-transform duration-200 hover:-translate-y-0.5"
@@ -27,7 +42,8 @@ export function BankBalanceCard() {
             <p className="mt-4 text-lg font-bold tracking-tight">{formatCurrency(acc.balance)}</p>
             <p className="mt-0.5 truncate text-[11px] opacity-80">{acc.accountName}</p>
           </div>
-        ))}
+        ))
+        )}
       </CardContent>
     </Card>
   );
