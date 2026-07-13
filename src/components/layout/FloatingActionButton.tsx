@@ -1,17 +1,41 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, X, ArrowDownCircle, ArrowUpCircle, FileText, Target } from "lucide-react";
+import { Plus, X, ArrowUpCircle, ArrowDownCircle, FileText, Target } from "lucide-react";
 import { cn } from "@/utils/cn";
-
-const actions = [
-  { label: "Catat Pemasukan", icon: ArrowUpCircle, className: "bg-success-600" },
-  { label: "Catat Pengeluaran", icon: ArrowDownCircle, className: "bg-danger-600" },
-  { label: "Buat Laporan", icon: FileText, className: "bg-primary-600" },
-  { label: "Set Target Baru", icon: Target, className: "bg-warning-600" },
-];
+import { useUIStore } from "@/store/uiStore";
 
 export function FloatingActionButton() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const openTransactionDialog = useUIStore((s) => s.openTransactionDialog);
+
+  const actions = [
+    {
+      label: "Catat Pemasukan",
+      icon: ArrowUpCircle,
+      className: "bg-success-600",
+      onClick: () => openTransactionDialog("income"),
+    },
+    {
+      label: "Catat Pengeluaran",
+      icon: ArrowDownCircle,
+      className: "bg-danger-600",
+      onClick: () => openTransactionDialog("expense"),
+    },
+    {
+      label: "Buat Laporan",
+      icon: FileText,
+      className: "bg-primary-600",
+      onClick: () => navigate("/laporan"),
+    },
+    {
+      label: "Set Target Baru",
+      icon: Target,
+      className: "bg-warning-600",
+      onClick: () => navigate("/target"),
+    },
+  ];
 
   return (
     <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
@@ -25,7 +49,10 @@ export function FloatingActionButton() {
               exit={{ opacity: 0, y: 12, scale: 0.9 }}
               transition={{ delay: idx * 0.04, duration: 0.18 }}
               className="flex items-center gap-2.5 rounded-full bg-white py-2 pl-4 pr-2 text-sm font-medium text-secondary-700 shadow-soft dark:bg-secondary-800 dark:text-secondary-100"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                action.onClick();
+                setOpen(false);
+              }}
             >
               {action.label}
               <span className={cn("flex h-8 w-8 items-center justify-center rounded-full text-white", action.className)}>

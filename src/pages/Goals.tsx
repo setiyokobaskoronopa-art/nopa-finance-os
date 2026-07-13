@@ -1,36 +1,110 @@
-import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
-import { formatCurrency } from "@/utils/format";
+import { useState } from "react";
+import { Plus, Trash2, PiggyBank, Target as TargetIcon } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { EmptyState } from "@/components/shared/EmptyState";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { Progress } from "@/components/ui/Progress";
-import { goalKpis, goalRows, type GoalRow } from "@/data/pagesDummy";
-import type { TableColumn } from "@/types/finance";
-
-const columns: TableColumn<GoalRow>[] = [
-  { key: "target", header: "Target" },
-  { key: "targetTanggal", header: "Target Tanggal" },
-  { key: "terkumpul", header: "Terkumpul", align: "right", render: (r) => formatCurrency(r.terkumpul) },
-  { key: "totalTarget", header: "Total Target", align: "right", render: (r) => formatCurrency(r.totalTarget) },
-  {
-    key: "progress",
-    header: "Progress",
-    render: (r) => (
-      <div className="flex w-36 items-center gap-2">
-        <Progress value={parseInt(r.progress)} />
-        <span className="text-xs font-medium text-secondary-500">{r.progress}</span>
-      </div>
-    ),
-  },
-];
+import { AddGoalDialog } from "@/components/dashboard/AddGoalDialog";
+import { useGoalsStore } from "@/store/goalsStore";
+import { formatCurrency } from "@/utils/format";
 
 export default function Goals() {
+  const goals = useGoalsStore((s) => s.goals);
+  const deleteGoal = useGoalsStore((s) => s.deleteGoal);
+  const addToGoal = useGoalsStore((s) => s.addToGoal);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [contributions, setContributions] = useState<Record<string, string>>({});
+
+  const handleContribute = (id: string) => {
+    const raw = contributions[id] || "";
+    const amount = Number(raw.replace(/[^0-9]/g, ""));
+    if (!amount) return;
+    addToGoal(id, amount);
+    setContributions((prev) => ({ ...prev, [id]: "" }));
+  };
+
   return (
-    <FinancePageTemplate
-      title="Target"
-      description="Pantau progres target finansial jangka pendek dan panjang."
-      kpis={goalKpis}
-      tableTitle="Daftar Target"
-      columns={columns}
-      rows={goalRows}
-      addLabel="Set Target Baru"
-    />
+    <div>
+      <PageHeader
+        title="Target"
+        description="Pantau dan kelola progres target finansial Anda."
+        action={
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Plus size={15} /> Set Target Baru
+          </Button>
+        }
+      />
+
+      {goals.length === 0 ? (
+        <Card>
+          <CardContent>
+            <EmptyState
+              icon={TargetIcon}
+              title="Belum ada target"
+              description="Buat target tabungan pertama Anda untuk mulai memantau progres."
+              action={
+                <Button size="sm" onClick={() => setDialogOpen(true)}>
+                  <Plus size={14} /> Set Target Baru
+                </Button>
+              }
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {goals.map((g) => {
+            const pct = g.target > 0 ? Math.min(100, Math.round((g.collected / g.target) * 100)) : 0;
+            return (
+              <Card key={g.id} className="group relative">
+                <CardContent className="pt-5">
+                  <button
+                    onClick={() => deleteGoal(g.id)}
+                    className="absolute right-4 top-4 rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
+                    aria-label="Hapus target"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-warning-50 text-warning-600 dark:bg-warning-500/10">
+                      <PiggyBank size={20} />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-secondary-900 dark:text-white">{g.name}</p>
+                      <p className="text-xs text-secondary-400">{g.targetDate}</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-5">
+                    <div className="mb-2 flex items-end justify-between">
+                      <p className="text-2xl font-bold text-secondary-900 dark:text-white">{pct}%</p>
+                      <p className="text-xs text-secondary-400">
+                        {formatCurrency(g.collected)} / {formatCurrency(g.target)}
+                      </p>
+                    </div>
+                    <Progress value={pct} />
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <Input
+                      placeholder="Tambah dana (Rp)"
+                      inputMode="numeric"
+                      value={contributions[g.id] || ""}
+                      onChange={(e) => setContributions((prev) => ({ ...prev, [g.id]: e.target.value }))}
+                    />
+                    <Button variant="outline" onClick={() => handleContribute(g.id)}>
+                      Tambah
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      <AddGoalDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+    </div>
   );
 }

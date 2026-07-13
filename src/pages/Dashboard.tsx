@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Download, Plus } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -14,8 +15,48 @@ import { TopCategoriesCard } from "@/components/dashboard/TopCategoriesCard";
 import { BankBalanceCard } from "@/components/dashboard/BankBalanceCard";
 import { QuickActionsCard } from "@/components/dashboard/QuickActionsCard";
 import { dashboardKpis } from "@/data/dummy";
+import { useTransactionsStore, selectTotals } from "@/store/transactionsStore";
+import { useAccountsStore } from "@/store/accountsStore";
+import { useGoalsStore } from "@/store/goalsStore";
+import { useUIStore } from "@/store/uiStore";
+import { formatCurrency } from "@/utils/format";
+import type { KpiDatum } from "@/types/finance";
 
 export default function Dashboard() {
+  const transactions = useTransactionsStore((s) => s.transactions);
+  const accounts = useAccountsStore((s) => s.accounts);
+  const goals = useGoalsStore((s) => s.goals);
+  const openTransactionDialog = useUIStore((s) => s.openTransactionDialog);
+
+  const kpis = useMemo<KpiDatum[]>(() => {
+    const { income, expense, cashFlow } = selectTotals(transactions);
+    const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const mainGoal = goals[0];
+    const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((mainGoal.collected / mainGoal.target) * 100) : 0;
+
+    return dashboardKpis.map((kpi) => {
+      switch (kpi.id) {
+        case "saldo-total":
+          return { ...kpi, value: formatCurrency(saldoTotal), footnote: `${accounts.length} rekening aktif` };
+        case "cash-flow":
+          return { ...kpi, value: formatCurrency(cashFlow), footnote: "Pemasukan dikurangi pengeluaran" };
+        case "pemasukan":
+          return { ...kpi, value: formatCurrency(income), footnote: `${transactions.filter((t) => t.type === "income").length} transaksi masuk` };
+        case "pengeluaran":
+          return { ...kpi, value: formatCurrency(expense), footnote: `${transactions.filter((t) => t.type === "expense").length} transaksi keluar` };
+        case "target-pernikahan":
+          return {
+            ...kpi,
+            label: mainGoal ? mainGoal.name : "Target 100 Juta Pertama",
+            value: `${goalPct}%`,
+            footnote: mainGoal ? `${formatCurrency(mainGoal.collected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur",
+          };
+        default:
+          return kpi;
+      }
+    });
+  }, [transactions, accounts, goals]);
+
   return (
     <div>
       <PageHeader
@@ -26,7 +67,7 @@ export default function Dashboard() {
             <Button variant="outline" size="sm">
               <Download size={15} /> Export
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={() => openTransactionDialog("income")}>
               <Plus size={15} /> Transaksi Baru
             </Button>
           </div>
@@ -35,7 +76,7 @@ export default function Dashboard() {
 
       {/* KPI Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {dashboardKpis.map((kpi, idx) => (
+        {kpis.map((kpi, idx) => (
           <KpiCard key={kpi.id} data={kpi} index={idx} />
         ))}
       </div>

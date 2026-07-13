@@ -20,6 +20,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/utils/cn";
+import { useGoalsStore } from "@/store/goalsStore";
+import { formatCurrency } from "@/utils/format";
 
 interface NavItem {
   label: string;
@@ -50,6 +52,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
+  const goals = useGoalsStore((s) => s.goals);
+  const mainGoal = goals[0];
+  const pct = mainGoal && mainGoal.target > 0 ? Math.min(100, Math.round((mainGoal.collected / mainGoal.target) * 100)) : 0;
+
   return (
     <>
       {/* Mobile overlay */}
@@ -127,12 +133,16 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
         </nav>
 
         <div className="mx-3 mb-4 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-4 text-white shadow-glow">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary-100">Target Pernikahan</p>
-          <p className="mt-1 text-lg font-bold">Belum ada data</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary-100">
+            {mainGoal ? mainGoal.name : "Target 100 Juta Pertama"}
+          </p>
+          <p className="mt-1 text-lg font-bold">{pct}% Tercapai</p>
           <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
-            <div className="h-full w-0 rounded-full bg-white" />
+            <div className="h-full rounded-full bg-white transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
-          <p className="mt-2 text-[11px] text-primary-100">14 Agustus 2026 · Kalasan, Sleman</p>
+          <p className="mt-2 text-[11px] text-primary-100">
+            {mainGoal ? `${formatCurrency(mainGoal.collected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur"}
+          </p>
         </div>
       </aside>
     </>
