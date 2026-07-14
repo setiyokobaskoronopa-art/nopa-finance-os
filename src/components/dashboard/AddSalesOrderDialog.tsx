@@ -21,6 +21,8 @@ const COD_TAX_RATE = 0.0033; // 0.33% (dihitung dari data aktual laporan kamu)
 
 const EKSPEDIS_OPTIONS = ["JNE", "J&T", "SICEPAT", "LION", "POS", "GOJEK"];
 const METODE_OPTIONS = ["Transfer", "COD", "Kredit"];
+const PLATFORM_OPTIONS = ["Database", "Website", "Meta", "Google", "Tiktok Shop", "Organik"];
+const STATUS_OPTIONS = ["On Proses", "Delivered", "Problem", "Return"];
 const KODE_OPTIONS = [
   { value: "O", label: "O - OTS" },
   { value: "F", label: "F - Follow Up" },
@@ -38,7 +40,9 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
 
   const [cs, setCs] = useState(profile.name || "");
   const [namaCustomer, setNamaCustomer] = useState("");
+  const [noWa, setNoWa] = useState("");
   const [kode, setKode] = useState("O");
+  const [platform, setPlatform] = useState(PLATFORM_OPTIONS[0]);
   const [metodePembayaran, setMetodePembayaran] = useState("Transfer");
   const [ekspedis, setEkspedis] = useState(EKSPEDIS_OPTIONS[0]);
   const [produk, setProduk] = useState(PRODUCT_NAMES[0]);
@@ -49,6 +53,9 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   const [promo, setPromo] = useState("0");
   const [hpp, setHpp] = useState("");
   const [status, setStatus] = useState("On Proses");
+
+  const isCoffiy = produk.startsWith("COFFIY");
+  const boxFieldLabel = isCoffiy ? "Sachet" : "Box";
 
   const boxOptions = PRODUCT_PRICING[produk] ?? [];
 
@@ -75,7 +82,9 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   const reset = () => {
     setCs(profile.name || "");
     setNamaCustomer("");
+    setNoWa("");
     setKode("O");
+    setPlatform(PLATFORM_OPTIONS[0]);
     setMetodePembayaran("Transfer");
     setEkspedis(EKSPEDIS_OPTIONS[0]);
     setProduk(PRODUCT_NAMES[0]);
@@ -111,7 +120,9 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
       cs: cs.trim() || "Setyo",
       tanggal: formatDateSlash(new Date()),
       namaCustomer: namaCustomer.trim(),
+      noWa: noWa.trim(),
       kode,
+      platform,
       metodePembayaran,
       ekspedis,
       produk,
@@ -169,7 +180,27 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
             <Input value={namaCustomer} onChange={(e) => setNamaCustomer(e.target.value)} placeholder="Nama pelanggan" />
           </div>
 
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-secondary-500">No. WhatsApp</label>
+            <Input value={noWa} onChange={(e) => setNoWa(e.target.value)} placeholder="08xx-xxxx-xxxx" />
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Platform</label>
+              <Select value={platform} onValueChange={setPlatform}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-secondary-500">Metode Pembayaran</label>
               <Select value={metodePembayaran} onValueChange={setMetodePembayaran}>
@@ -185,21 +216,22 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Ekspedisi</label>
-              <Select value={ekspedis} onValueChange={setEkspedis}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {EKSPEDIS_OPTIONS.map((e) => (
-                    <SelectItem key={e} value={e}>
-                      {e}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-medium text-secondary-500">Ekspedisi</label>
+            <Select value={ekspedis} onValueChange={setEkspedis}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EKSPEDIS_OPTIONS.map((e) => (
+                  <SelectItem key={e} value={e}>
+                    {e}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -219,7 +251,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
               </Select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Box</label>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">{boxFieldLabel}</label>
               <Select value={box} onValueChange={handleBoxChange}>
                 <SelectTrigger>
                   <SelectValue />
@@ -227,7 +259,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
                 <SelectContent>
                   {boxOptions.map((t) => (
                     <SelectItem key={t.box} value={String(t.box)}>
-                      {t.box} Box — {formatCurrency(t.hargaJual, { compact: true })}
+                      {t.box} {boxFieldLabel} — {formatCurrency(t.hargaJual, { compact: true })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -284,8 +316,11 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="On Proses">On Proses</SelectItem>
-                  <SelectItem value="Delivered">Delivered</SelectItem>
+                  {STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

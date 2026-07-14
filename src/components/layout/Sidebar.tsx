@@ -34,7 +34,7 @@ const navItems: NavItem[] = [
   { label: "Keuangan Pribadi", path: "/keuangan-pribadi", icon: Wallet },
   { label: "Keuangan Bisnis", path: "/keuangan-bisnis", icon: Building2 },
   { label: "Penjualan", path: "/penjualan", icon: TrendingUp },
-  { label: "Produk", path: "/produk", icon: Package },
+  { label: "Stok & Return", path: "/produk", icon: Package },
   { label: "Customer", path: "/customer", icon: Users },
   { label: "Supplier", path: "/supplier", icon: Truck },
   { label: "Rekening", path: "/rekening", icon: Landmark },

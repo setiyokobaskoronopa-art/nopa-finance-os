@@ -10,7 +10,7 @@ export const PRODUCT_PRICING: Record<string, PriceTier[]> = {
     { box: 2, hpp: 1022000, hargaJual: 1998000 },
   ],
   SGLOW: [
-    { box: 1, hpp: 487000, hargaJual: 999000 },
+    { box: 1, hpp: 487000, hargaJual: 990000 },
     { box: 2, hpp: 974000, hargaJual: 1805000 },
     { box: 3, hpp: 1461000, hargaJual: 2614500 },
     { box: 4, hpp: 1948000, hargaJual: 3427000 },

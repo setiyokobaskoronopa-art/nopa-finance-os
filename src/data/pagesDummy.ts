@@ -48,7 +48,9 @@ export interface SalesOrder extends GenericRow {
   cs: string;
   tanggal: string;
   namaCustomer: string;
+  noWa: string;
   kode: string;
+  platform: string;
   metodePembayaran: string;
   ekspedis: string;
   produk: string;

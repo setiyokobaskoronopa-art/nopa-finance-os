@@ -5,6 +5,7 @@ export interface EntityStoreState<T extends { id: string }> {
   items: T[];
   addItem: (item: Omit<T, "id">) => void;
   removeItem: (id: string) => void;
+  updateItem: (id: string, patch: Partial<T>) => void;
 }
 
 export function createEntityStore<T extends { id: string }>(storageKey: string) {
@@ -22,6 +23,10 @@ export function createEntityStore<T extends { id: string }>(storageKey: string) 
         removeItem: (id) =>
           set((state) => ({
             items: state.items.filter((i) => i.id !== id),
+          })),
+        updateItem: (id, patch) =>
+          set((state) => ({
+            items: state.items.map((i) => (i.id === id ? { ...i, ...patch } : i)),
           })),
       }),
       { name: `nopa-finance-os-${storageKey}` }

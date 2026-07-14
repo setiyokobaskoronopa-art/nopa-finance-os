@@ -45,3 +45,11 @@ export function formatDateSlash(date: Date = new Date()): string {
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 }
+
+export function parseDateSlash(value: string): Date | null {
+  const parts = value.split("/");
+  if (parts.length !== 3) return null;
+  const [day, month, year] = parts.map(Number);
+  if (!day || !month || !year) return null;
+  return new Date(year, month - 1, day);
+}
