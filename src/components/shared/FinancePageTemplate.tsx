@@ -17,6 +17,10 @@ interface FinancePageTemplateProps<T extends GenericRow> {
   columns: TableColumn<T>[];
   rows: T[];
   addLabel?: string;
+  onAdd?: () => void;
+  onDelete?: (row: T) => void;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }
 
 export function FinancePageTemplate<T extends GenericRow>({
@@ -29,6 +33,10 @@ export function FinancePageTemplate<T extends GenericRow>({
   columns,
   rows,
   addLabel = "Tambah Data",
+  onAdd,
+  onDelete,
+  emptyTitle,
+  emptyDescription,
 }: FinancePageTemplateProps<T>) {
   return (
     <div>
@@ -40,7 +48,7 @@ export function FinancePageTemplate<T extends GenericRow>({
             <Button variant="outline" size="sm">
               <Download size={15} /> Export
             </Button>
-            <Button size="sm">
+            <Button size="sm" onClick={onAdd}>
               <Plus size={15} /> {addLabel}
             </Button>
           </div>
@@ -70,7 +78,13 @@ export function FinancePageTemplate<T extends GenericRow>({
             <CardTitle>{tableTitle}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <DataTable columns={columns} rows={rows} />
+            <DataTable
+              columns={columns}
+              rows={rows}
+              onDelete={onDelete}
+              emptyTitle={emptyTitle}
+              emptyDescription={emptyDescription}
+            />
           </CardContent>
         </Card>
       </div>

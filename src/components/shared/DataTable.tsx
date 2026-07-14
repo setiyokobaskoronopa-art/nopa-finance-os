@@ -1,3 +1,4 @@
+import { Trash2 } from "lucide-react";
 import type { GenericRow, TableColumn } from "@/types/finance";
 import { cn } from "@/utils/cn";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -5,11 +6,13 @@ import { EmptyState } from "@/components/shared/EmptyState";
 export function DataTable<T extends GenericRow>({
   columns,
   rows,
+  onDelete,
   emptyTitle = "Belum ada data",
   emptyDescription = "Data akan muncul di sini setelah Anda menambahkannya.",
 }: {
   columns: TableColumn<T>[];
   rows: T[];
+  onDelete?: (row: T) => void;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
@@ -34,13 +37,14 @@ export function DataTable<T extends GenericRow>({
                 {col.header}
               </th>
             ))}
+            {onDelete && <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-secondary-400">Aksi</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr
               key={row.id}
-              className="border-b border-secondary-50 transition-colors last:border-0 hover:bg-secondary-50/60 dark:border-secondary-800 dark:hover:bg-secondary-800/30"
+              className="group border-b border-secondary-50 transition-colors last:border-0 hover:bg-secondary-50/60 dark:border-secondary-800 dark:hover:bg-secondary-800/30"
             >
               {columns.map((col) => (
                 <td
@@ -54,6 +58,17 @@ export function DataTable<T extends GenericRow>({
                   {col.render ? col.render(row) : row[col.key as string]}
                 </td>
               ))}
+              {onDelete && (
+                <td className="px-5 py-3.5 text-right">
+                  <button
+                    onClick={() => onDelete(row)}
+                    className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
+                    aria-label="Hapus"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

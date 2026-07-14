@@ -14,8 +14,16 @@ import Assets from "@/pages/Assets";
 import Goals from "@/pages/Goals";
 import Reports from "@/pages/Reports";
 import SettingsPage from "@/pages/SettingsPage";
+import Login from "@/pages/Login";
+import { useAuthStore } from "@/store/authStore";
 
 function App() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+
+  if (!isAuthenticated) {
+    return <Login />;
+  }
+
   return (
     <Routes>
       <Route element={<DashboardLayout />}>

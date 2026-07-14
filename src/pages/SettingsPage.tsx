@@ -1,12 +1,21 @@
+import { useRef, useState, useEffect } from "react";
 import type { ComponentType, ReactNode } from "react";
-import { Moon, Sun, Bell, Shield, Globe, CreditCard } from "lucide-react";
+import { Moon, Sun, Bell, Shield, Globe, CreditCard, Camera } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Switch } from "@/components/ui/Switch";
-import { Avatar, AvatarFallback } from "@/components/ui/Avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/Avatar";
 import { useTheme } from "@/hooks/useTheme";
+import { useAuthStore } from "@/store/authStore";
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
 
 function SettingRow({
   icon: Icon,
@@ -37,6 +46,38 @@ function SettingRow({
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
+  const profile = useAuthStore((s) => s.profile);
+  const updateProfile = useAuthStore((s) => s.updateProfile);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [name, setName] = useState(profile.name);
+  const [email, setEmail] = useState(profile.email);
+  const [phone, setPhone] = useState(profile.phone);
+  const [location, setLocation] = useState(profile.location);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    setName(profile.name);
+    setEmail(profile.email);
+    setPhone(profile.phone);
+    setLocation(profile.location);
+  }, [profile]);
+
+  const handleSave = () => {
+    updateProfile({ name, email, phone, location });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateProfile({ photo: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div>
@@ -45,14 +86,31 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardContent className="flex flex-col items-center pt-8 text-center">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="text-xl">NS</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                {profile.photo && <AvatarImage src={profile.photo} alt={profile.name} />}
+                <AvatarFallback className="text-xl">{getInitials(profile.name || "U")}</AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary-600 text-white shadow-soft transition-transform hover:scale-105"
+                aria-label="Ganti foto profil"
+              >
+                <Camera size={13} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
+            </div>
             <p className="mt-4 text-base font-semibold text-secondary-900 dark:text-white">
-              Nopa Setiyoko Baskoro
+              {profile.name || "Pengguna"}
             </p>
-            <p className="text-xs text-secondary-400">Owner — DVN Collagen & Ais Beauty</p>
-            <Button variant="outline" size="sm" className="mt-4">
+            <p className="text-xs text-secondary-400">{profile.role} — DVN Collagen & Ais Beauty</p>
+            <Button variant="outline" size="sm" className="mt-4" onClick={() => fileInputRef.current?.click()}>
               Ganti Foto Profil
             </Button>
           </CardContent>
@@ -66,22 +124,33 @@ export default function SettingsPage() {
             <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-secondary-500">Nama Lengkap</label>
-                <Input defaultValue="Nopa Setiyoko Baskoro" />
+                <Input value={name} onChange={(e) => setName(e.target.value)} />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-secondary-500">Email</label>
-                <Input defaultValue="nopa@dvncollagen.com" />
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-secondary-500">No. Telepon</label>
-                <Input defaultValue="+62 812-xxxx-xxxx" />
+                <Input
+                  placeholder="+62 812-xxxx-xxxx"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-medium text-secondary-500">Lokasi</label>
-                <Input defaultValue="Depok, Sleman, Yogyakarta" />
+                <Input
+                  placeholder="Kota, Provinsi"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                />
               </div>
-              <div className="sm:col-span-2 flex justify-end">
-                <Button size="sm">Simpan Perubahan</Button>
+              <div className="sm:col-span-2 flex items-center justify-end gap-3">
+                {saved && <span className="text-xs font-medium text-success-600">Tersimpan ✓</span>}
+                <Button size="sm" onClick={handleSave}>
+                  Simpan Perubahan
+                </Button>
               </div>
             </CardContent>
           </Card>
