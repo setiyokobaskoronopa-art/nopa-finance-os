@@ -7,12 +7,14 @@ export function DataTable<T extends GenericRow>({
   columns,
   rows,
   onDelete,
+  canDelete,
   emptyTitle = "Belum ada data",
   emptyDescription = "Data akan muncul di sini setelah Anda menambahkannya.",
 }: {
   columns: TableColumn<T>[];
   rows: T[];
   onDelete?: (row: T) => void;
+  canDelete?: (row: T) => boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
@@ -60,13 +62,15 @@ export function DataTable<T extends GenericRow>({
               ))}
               {onDelete && (
                 <td className="px-5 py-3.5 text-right">
-                  <button
-                    onClick={() => onDelete(row)}
-                    className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
-                    aria-label="Hapus"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  {(!canDelete || canDelete(row)) && (
+                    <button
+                      onClick={() => onDelete(row)}
+                      className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
+                      aria-label="Hapus"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
                 </td>
               )}
             </tr>

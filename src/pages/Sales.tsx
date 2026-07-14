@@ -6,6 +6,7 @@ import { formatCurrency } from "@/utils/format";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { useSalesStore } from "@/store/entityStores";
+import { getEffectiveGrossProvit } from "@/utils/businessCalc";
 import type { SalesOrder } from "@/data/pagesDummy";
 import type { KpiDatum, TableColumn } from "@/types/finance";
 
@@ -71,12 +72,22 @@ const columns: TableColumn<SalesOrder>[] = [
   { key: "biayaCod", header: "Biaya COD 3%", align: "right", render: (r) => (r.biayaCod ? formatCurrency(r.biayaCod) : "-") },
   { key: "pajakCod", header: "Pajak COD 0,33%", align: "right", render: (r) => (r.pajakCod ? formatCurrency(r.pajakCod) : "-") },
   { key: "cashIn", header: "Cash In", align: "right", render: (r) => formatCurrency(r.cashIn) },
-  { key: "hpp", header: "HPP", align: "right", render: (r) => formatCurrency(r.hpp) },
+  { key: "hpp", header: "HPP", align: "right", render: (r) => (
+    <span>
+      {formatCurrency(r.hpp)}
+      {r.hppSource === "Stock Return" && <span className="ml-1 text-[10px] text-warning-600">(SR)</span>}
+    </span>
+  ) },
   {
     key: "grossProvit",
     header: "Gross Provit",
     align: "right",
-    render: (r) => <span className="font-semibold text-success-600">{formatCurrency(r.grossProvit)}</span>,
+    render: (r) =>
+      r.status === "Return" ? (
+        <span className="text-secondary-400">Rp0 (Return)</span>
+      ) : (
+        <span className="font-semibold text-success-600">{formatCurrency(r.grossProvit)}</span>
+      ),
   },
   {
     key: "status",
@@ -94,7 +105,7 @@ export default function Sales() {
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalBayar = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
     const totalOmzet = orders.reduce((s, o) => s + o.hargaTotalProduk, 0);
-    const totalProvit = orders.reduce((s, o) => s + o.grossProvit, 0);
+    const totalProvit = orders.reduce((s, o) => s + getEffectiveGrossProvit(o), 0);
     const count = orders.length;
     return [
       { id: "s1", label: "Total Penjualan", value: formatCurrency(totalBayar), icon: "TrendingUp", accent: "primary" },

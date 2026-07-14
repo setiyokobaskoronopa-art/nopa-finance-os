@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
+import { Link2 } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { EntityFormDialog, type FieldConfig } from "@/components/shared/EntityFormDialog";
-import { formatCurrency, formatDateShort } from "@/utils/format";
+import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { Badge } from "@/components/ui/Badge";
 import { usePersonalTxStore } from "@/store/entityStores";
+import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 import type { PersonalTx } from "@/data/pagesDummy";
 import type { KpiDatum, TableColumn } from "@/types/finance";
 
@@ -14,19 +16,27 @@ const fields: FieldConfig[] = [
   { key: "jenis", label: "Jenis", options: ["Keluar", "Masuk"] },
 ];
 
-const columns: TableColumn<PersonalTx>[] = [
-  { key: "tanggal", header: "Tanggal" },
-  { key: "keterangan", header: "Keterangan" },
-  { key: "kategori", header: "Kategori" },
-  { key: "jenis", header: "Jenis", render: (r) => <Badge variant={r.jenis === "Masuk" ? "success" : "danger"}>{r.jenis}</Badge> },
-  { key: "jumlah", header: "Jumlah", align: "right", render: (r) => formatCurrency(r.jumlah) },
-];
-
 export default function PersonalFinance() {
-  const rows = usePersonalTxStore((s) => s.items);
+  const manualRows = usePersonalTxStore((s) => s.items);
   const addItem = usePersonalTxStore((s) => s.addItem);
   const removeItem = usePersonalTxStore((s) => s.removeItem);
+  const priveMutations = useBusinessMutationsStore((s) => s.items.filter((m) => m.kategori === "Prive"));
   const [open, setOpen] = useState(false);
+
+  const priveRows = useMemo<PersonalTx[]>(
+    () =>
+      priveMutations.map((m) => ({
+        id: `prive-${m.id}`,
+        tanggal: m.tanggal,
+        keterangan: m.keterangan ? `Prive Bisnis — ${m.keterangan}` : "Prive Bisnis",
+        kategori: "Prive dari Bisnis",
+        jumlah: m.jumlah,
+        jenis: "Masuk",
+      })),
+    [priveMutations]
+  );
+
+  const rows = useMemo(() => [...priveRows, ...manualRows], [priveRows, manualRows]);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const masuk = rows.filter((r) => r.jenis === "Masuk").reduce((s, r) => s + r.jumlah, 0);
@@ -36,12 +46,24 @@ export default function PersonalFinance() {
       { id: "p1", label: "Saldo Pribadi", value: formatCurrency(masuk - keluar), icon: "Wallet", accent: "primary" },
       { id: "p2", label: "Pengeluaran", value: formatCurrency(keluar), icon: "ArrowDownCircle", accent: "danger" },
       { id: "p3", label: "Tabungan", value: formatCurrency(tabungan), icon: "PiggyBank", accent: "success" },
-      { id: "p4", label: "Dana Darurat", value: "0%", icon: "ShieldCheck", accent: "secondary" },
+      { id: "p4", label: "Prive dari Bisnis", value: formatCurrency(priveMutations.reduce((s, m) => s + m.jumlah, 0)), icon: "ArrowLeftRight", accent: "secondary" },
     ];
-  }, [rows]);
+  }, [rows, priveMutations]);
+
+  const columns: TableColumn<PersonalTx>[] = [
+    { key: "tanggal", header: "Tanggal" },
+    { key: "keterangan", header: "Keterangan" },
+    { key: "kategori", header: "Kategori" },
+    { key: "jenis", header: "Jenis", render: (r) => <Badge variant={r.jenis === "Masuk" ? "success" : "danger"}>{r.jenis}</Badge> },
+    { key: "jumlah", header: "Jumlah", align: "right", render: (r) => formatCurrency(r.jumlah) },
+  ];
 
   return (
     <>
+      <div className="mb-4 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
+        <Link2 size={14} className="shrink-0" />
+        Mutasi <strong className="mx-1">Prive</strong> dari halaman Keuangan Bisnis otomatis masuk sebagai pemasukan di sini.
+      </div>
       <FinancePageTemplate
         title="Keuangan Pribadi"
         description="Pantau saldo, pengeluaran, dan tabungan pribadi Anda."
@@ -52,6 +74,7 @@ export default function PersonalFinance() {
         addLabel="Catat Transaksi"
         onAdd={() => setOpen(true)}
         onDelete={(row) => removeItem(row.id)}
+        canDelete={(row) => !row.id.startsWith("prive-")}
         emptyTitle="Belum ada transaksi pribadi"
         emptyDescription="Catat transaksi pribadi untuk mulai memantau keuangan Anda."
       />
@@ -64,7 +87,7 @@ export default function PersonalFinance() {
         submitLabel="Simpan Transaksi"
         onSubmit={(v) => {
           const jumlah = Number(v.jumlah.replace(/[^0-9]/g, "")) || 0;
-          addItem({ tanggal: formatDateShort(new Date()), keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
+          addItem({ tanggal: formatDateSlash(new Date()), keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
         }}
       />
     </>

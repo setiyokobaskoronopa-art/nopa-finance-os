@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
+import { getEffectiveGrossProvit } from "@/utils/businessCalc";
 import type { KpiDatum } from "@/types/finance";
 
 const fields: FieldConfig[] = [
@@ -28,7 +29,7 @@ export default function BusinessFinance() {
     const omzet = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
     const hpp = orders.reduce((s, o) => s + o.hpp, 0);
     const biayaOperasional = orders.reduce((s, o) => s + o.biayaCod + o.pajakCod + o.diskonOngkir + o.promo, 0);
-    const labaKotor = orders.reduce((s, o) => s + o.grossProvit, 0);
+    const labaKotor = orders.reduce((s, o) => s + getEffectiveGrossProvit(o), 0);
     const totalMutasi = mutations.reduce((s, m) => s + m.jumlah, 0);
     const labaBersih = labaKotor - totalMutasi;
     const margin = omzet > 0 ? `${((labaBersih / omzet) * 100).toFixed(1)}%` : "0%";

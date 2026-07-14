@@ -19,6 +19,7 @@ interface FinancePageTemplateProps<T extends GenericRow> {
   addLabel?: string;
   onAdd?: () => void;
   onDelete?: (row: T) => void;
+  canDelete?: (row: T) => boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }
@@ -35,6 +36,7 @@ export function FinancePageTemplate<T extends GenericRow>({
   addLabel = "Tambah Data",
   onAdd,
   onDelete,
+  canDelete,
   emptyTitle,
   emptyDescription,
 }: FinancePageTemplateProps<T>) {
@@ -82,6 +84,7 @@ export function FinancePageTemplate<T extends GenericRow>({
               columns={columns}
               rows={rows}
               onDelete={onDelete}
+              canDelete={canDelete}
               emptyTitle={emptyTitle}
               emptyDescription={emptyDescription}
             />

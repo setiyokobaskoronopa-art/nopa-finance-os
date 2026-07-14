@@ -15,6 +15,7 @@ import { useSalesStore } from "@/store/entityStores";
 import { useAuthStore } from "@/store/authStore";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { PRODUCT_PRICING, PRODUCT_NAMES } from "@/data/productPricing";
+import { getAvailableStockReturn } from "@/utils/stockCalc";
 
 const COD_FEE_RATE = 0.03; // 3%
 const COD_TAX_RATE = 0.0033; // 0.33% (dihitung dari data aktual laporan kamu)
@@ -36,6 +37,7 @@ interface AddSalesOrderDialogProps {
 
 export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogProps) {
   const addItem = useSalesStore((s) => s.addItem);
+  const allOrders = useSalesStore((s) => s.items);
   const profile = useAuthStore((s) => s.profile);
 
   const [cs, setCs] = useState(profile.name || "");
@@ -52,31 +54,42 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   const [totalCustomerBayar, setTotalCustomerBayar] = useState("");
   const [promo, setPromo] = useState("0");
   const [hpp, setHpp] = useState("");
+  const [useStockReturn, setUseStockReturn] = useState(false);
   const [status, setStatus] = useState("On Proses");
 
   const isCoffiy = produk.startsWith("COFFIY");
   const boxFieldLabel = isCoffiy ? "Sachet" : "Box";
+  const availableStockReturn = getAvailableStockReturn(allOrders, produk);
+  const boxQty = Number(box) || 0;
+  const stockReturnUsable = availableStockReturn >= boxQty && boxQty > 0;
 
   const boxOptions = PRODUCT_PRICING[produk] ?? [];
 
-  const applyPricing = (produkName: string, boxValue: string) => {
+  const applyPricing = (produkName: string, boxValue: string, stockReturn = useStockReturn) => {
     const tier = PRODUCT_PRICING[produkName]?.find((t) => String(t.box) === boxValue);
     if (tier) {
-      setHpp(String(tier.hpp));
+      setHpp(stockReturn ? "0" : String(tier.hpp));
       setHargaTotalProduk(String(tier.hargaJual));
     }
+  };
+
+  const handleToggleStockReturn = (checked: boolean) => {
+    setUseStockReturn(checked);
+    applyPricing(produk, box, checked);
   };
 
   const handleProdukChange = (v: string) => {
     setProduk(v);
     const firstBox = String(PRODUCT_PRICING[v]?.[0]?.box ?? "1");
     setBox(firstBox);
-    applyPricing(v, firstBox);
+    setUseStockReturn(false);
+    applyPricing(v, firstBox, false);
   };
 
   const handleBoxChange = (v: string) => {
     setBox(v);
-    applyPricing(produk, v);
+    setUseStockReturn(false);
+    applyPricing(produk, v, false);
   };
 
   const reset = () => {
@@ -93,7 +106,8 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
     setTotalCustomerBayar("");
     setPromo("0");
     setStatus("On Proses");
-    applyPricing(PRODUCT_NAMES[0], "1");
+    setUseStockReturn(false);
+    applyPricing(PRODUCT_NAMES[0], "1", false);
   };
 
   useEffect(() => {
@@ -127,6 +141,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
       ekspedis,
       produk,
       box,
+      hppSource: useStockReturn ? "Stock Return" : "Baru",
       hargaTotalProduk: num(hargaTotalProduk),
       diskonOngkir: num(diskonOngkir),
       totalCustomerBayar: preview.totalBayar,
@@ -325,6 +340,26 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
               </Select>
             </div>
           </div>
+
+          <label
+            className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs transition-colors ${
+              stockReturnUsable
+                ? "cursor-pointer border-secondary-200 hover:bg-secondary-50 dark:border-secondary-700 dark:hover:bg-secondary-800"
+                : "cursor-not-allowed border-secondary-100 opacity-50 dark:border-secondary-800"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={useStockReturn}
+              disabled={!stockReturnUsable}
+              onChange={(e) => handleToggleStockReturn(e.target.checked)}
+              className="h-4 w-4 rounded accent-primary-600"
+            />
+            <span className="text-secondary-700 dark:text-secondary-200">
+              Gunakan Stock Return — tersedia <strong>{availableStockReturn}</strong> {boxFieldLabel.toLowerCase()} untuk {produk}
+              {useStockReturn && " (HPP jadi Rp0)"}
+            </span>
+          </label>
 
           <div className="rounded-2xl border border-primary-100 bg-primary-50/50 p-4 dark:border-primary-500/20 dark:bg-primary-500/5">
             <p className="mb-2 text-xs font-semibold text-primary-700 dark:text-primary-300">

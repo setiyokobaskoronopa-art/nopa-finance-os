@@ -55,6 +55,7 @@ export interface SalesOrder extends GenericRow {
   ekspedis: string;
   produk: string;
   box: string;
+  hppSource: string;
   hargaTotalProduk: number;
   diskonOngkir: number;
   totalCustomerBayar: number;

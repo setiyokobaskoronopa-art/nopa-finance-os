@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatNumber } from "@/utils/format";
 import { useSalesStore } from "@/store/entityStores";
+import { getAvailableStockReturn } from "@/utils/stockCalc";
 import type { KpiDatum, TableColumn, GenericRow } from "@/types/finance";
 
 interface StockRow extends GenericRow {
@@ -17,6 +18,7 @@ interface StockRow extends GenericRow {
   unitTerjual: number;
   totalReturn: number;
   returnRate: string;
+  stockReturnTersedia: number;
   totalHpp: number;
 }
 
@@ -31,6 +33,12 @@ const columns: TableColumn<StockRow>[] = [
     render: (r) => <Badge variant={r.totalReturn > 0 ? "danger" : "success"}>{r.totalReturn}</Badge>,
   },
   { key: "returnRate", header: "Return Rate", align: "center" },
+  {
+    key: "stockReturnTersedia",
+    header: "Stock Return Tersedia",
+    align: "center",
+    render: (r) => <Badge variant={r.stockReturnTersedia > 0 ? "warning" : "secondary"}>{r.stockReturnTersedia}</Badge>,
+  },
   { key: "totalHpp", header: "Total HPP", align: "right", render: (r) => formatCurrency(r.totalHpp) },
 ];
 
@@ -58,17 +66,23 @@ export default function Products() {
           unitTerjual: unit,
           totalReturn: isReturn ? 1 : 0,
           returnRate: "0%",
+          stockReturnTersedia: 0,
           totalHpp: o.hpp,
         });
       }
     }
     const rows = Array.from(grouped.values())
-      .map((r) => ({ ...r, returnRate: r.jumlahOrder > 0 ? `${((r.totalReturn / r.jumlahOrder) * 100).toFixed(1)}%` : "0%" }))
+      .map((r) => ({
+        ...r,
+        returnRate: r.jumlahOrder > 0 ? `${((r.totalReturn / r.jumlahOrder) * 100).toFixed(1)}%` : "0%",
+        stockReturnTersedia: getAvailableStockReturn(orders, r.produk),
+      }))
       .sort((a, b) => b.unitTerjual - a.unitTerjual);
 
     const totalUnit = rows.reduce((s, r) => s + r.unitTerjual, 0);
     const totalReturn = rows.reduce((s, r) => s + r.totalReturn, 0);
     const totalOrder = rows.reduce((s, r) => s + r.jumlahOrder, 0);
+    const totalStockReturn = rows.reduce((s, r) => s + r.stockReturnTersedia, 0);
     const returnRateAll = totalOrder > 0 ? `${((totalReturn / totalOrder) * 100).toFixed(1)}%` : "0%";
     const terlaris = rows[0]?.produk ?? "-";
 
@@ -76,7 +90,7 @@ export default function Products() {
       { id: "pr1", label: "Total Unit Terjual", value: formatNumber(totalUnit), icon: "Package", accent: "primary" },
       { id: "pr2", label: "Total Return", value: String(totalReturn), icon: "AlertTriangle", accent: totalReturn > 0 ? "danger" : "secondary" },
       { id: "pr3", label: "Return Rate", value: returnRateAll, icon: "Percent", accent: "warning" },
-      { id: "pr4", label: "Produk Terlaris", value: terlaris, icon: "Star", accent: "success" },
+      { id: "pr4", label: "Stock Return Tersedia", value: String(totalStockReturn), icon: "PackageCheck", accent: totalStockReturn > 0 ? "warning" : "secondary", footnote: "Siap dipakai ulang di order baru" },
     ];
 
     return { kpis, rows };
@@ -96,7 +110,7 @@ export default function Products() {
 
       <div className="mb-6 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
         <Link2 size={14} className="shrink-0" />
-        Halaman ini otomatis dihitung dari status order di <strong className="mx-1">Penjualan</strong> — ubah status ke "Return" di sana untuk melihat perubahannya di sini.
+        Unit yang di-Return bisa dipakai ulang sebagai HPP Rp0 saat Buat Order baru di <strong className="mx-1">Penjualan</strong> — tersedia otomatis dihitung di sini.
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

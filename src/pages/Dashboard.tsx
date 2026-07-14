@@ -19,7 +19,7 @@ import { useTransactionsStore, selectTotals } from "@/store/transactionsStore";
 import { useAccountsStore } from "@/store/accountsStore";
 import { useGoalsStore } from "@/store/goalsStore";
 import { useUIStore } from "@/store/uiStore";
-import { useSalesStore } from "@/store/entityStores";
+import { useSalesStore, useInvestmentStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 import { computeLabaBersihBisnis, AUTO_LINKED_GOAL_ID } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
@@ -31,13 +31,28 @@ export default function Dashboard() {
   const goals = useGoalsStore((s) => s.goals);
   const salesOrders = useSalesStore((s) => s.items);
   const mutations = useBusinessMutationsStore((s) => s.items);
+  const investments = useInvestmentStore((s) => s.items);
   const openTransactionDialog = useUIStore((s) => s.openTransactionDialog);
 
   const kpis = useMemo<KpiDatum[]>(() => {
-    const { income, expense, cashFlow } = selectTotals(transactions);
+    const { income: manualIncome, expense: manualExpense } = selectTotals(transactions);
     const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0);
-    const mainGoal = goals[0];
+
+    const salesCashIn = salesOrders.reduce((sum, o) => sum + o.cashIn, 0);
+    const totalMutasi = mutations.reduce((sum, m) => sum + m.jumlah, 0);
     const labaBersih = computeLabaBersihBisnis(salesOrders, mutations);
+
+    const pemasukan = manualIncome + salesCashIn;
+    const pengeluaran = manualExpense + totalMutasi;
+    const cashFlow = pemasukan - pengeluaran;
+
+    const adsSpend = mutations.filter((m) => m.kategori === "Ads").reduce((sum, m) => sum + m.jumlah, 0);
+    const omzet = salesOrders.reduce((sum, o) => sum + o.totalCustomerBayar, 0);
+    const roas = adsSpend > 0 ? `${(omzet / adsSpend).toFixed(1)}x` : "0x";
+
+    const investasiTotal = investments.reduce((sum, i) => sum + i.nilai, 0);
+
+    const mainGoal = goals[0];
     const goalCollected = mainGoal?.id === AUTO_LINKED_GOAL_ID ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
     const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((goalCollected / mainGoal.target) * 100) : 0;
 
@@ -46,11 +61,19 @@ export default function Dashboard() {
         case "saldo-total":
           return { ...kpi, value: formatCurrency(saldoTotal), footnote: `${accounts.length} rekening aktif` };
         case "cash-flow":
-          return { ...kpi, value: formatCurrency(cashFlow), footnote: "Pemasukan dikurangi pengeluaran" };
+          return { ...kpi, value: formatCurrency(cashFlow), footnote: "Manual + Penjualan bisnis" };
         case "pemasukan":
-          return { ...kpi, value: formatCurrency(income), footnote: `${transactions.filter((t) => t.type === "income").length} transaksi masuk` };
+          return { ...kpi, value: formatCurrency(pemasukan), footnote: `Manual + Cash In ${salesOrders.length} order` };
         case "pengeluaran":
-          return { ...kpi, value: formatCurrency(expense), footnote: `${transactions.filter((t) => t.type === "expense").length} transaksi keluar` };
+          return { ...kpi, value: formatCurrency(pengeluaran), footnote: "Manual + Mutasi Bisnis" };
+        case "profit-bulanan":
+          return { ...kpi, value: formatCurrency(labaBersih), footnote: "Laba Bersih dari Keuangan Bisnis" };
+        case "investasi":
+          return { ...kpi, value: formatCurrency(investasiTotal), footnote: `${investments.length} instrumen` };
+        case "roas":
+          return { ...kpi, value: roas, footnote: "Omzet / biaya Ads" };
+        case "jumlah-order":
+          return { ...kpi, value: String(salesOrders.length), footnote: "Total order Penjualan" };
         case "target-pernikahan":
           return {
             ...kpi,
@@ -62,7 +85,7 @@ export default function Dashboard() {
           return kpi;
       }
     });
-  }, [transactions, accounts, goals, salesOrders, mutations]);
+  }, [transactions, accounts, goals, salesOrders, mutations, investments]);
 
   return (
     <div>
