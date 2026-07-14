@@ -19,6 +19,9 @@ import { useTransactionsStore, selectTotals } from "@/store/transactionsStore";
 import { useAccountsStore } from "@/store/accountsStore";
 import { useGoalsStore } from "@/store/goalsStore";
 import { useUIStore } from "@/store/uiStore";
+import { useSalesStore } from "@/store/entityStores";
+import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
+import { computeLabaBersihBisnis, AUTO_LINKED_GOAL_ID } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 import type { KpiDatum } from "@/types/finance";
 
@@ -26,13 +29,17 @@ export default function Dashboard() {
   const transactions = useTransactionsStore((s) => s.transactions);
   const accounts = useAccountsStore((s) => s.accounts);
   const goals = useGoalsStore((s) => s.goals);
+  const salesOrders = useSalesStore((s) => s.items);
+  const mutations = useBusinessMutationsStore((s) => s.items);
   const openTransactionDialog = useUIStore((s) => s.openTransactionDialog);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const { income, expense, cashFlow } = selectTotals(transactions);
     const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0);
     const mainGoal = goals[0];
-    const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((mainGoal.collected / mainGoal.target) * 100) : 0;
+    const labaBersih = computeLabaBersihBisnis(salesOrders, mutations);
+    const goalCollected = mainGoal?.id === AUTO_LINKED_GOAL_ID ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
+    const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((goalCollected / mainGoal.target) * 100) : 0;
 
     return dashboardKpis.map((kpi) => {
       switch (kpi.id) {
@@ -49,13 +56,13 @@ export default function Dashboard() {
             ...kpi,
             label: mainGoal ? mainGoal.name : "Target 100 Juta Pertama",
             value: `${goalPct}%`,
-            footnote: mainGoal ? `${formatCurrency(mainGoal.collected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur",
+            footnote: mainGoal ? `${formatCurrency(goalCollected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur",
           };
         default:
           return kpi;
       }
     });
-  }, [transactions, accounts, goals]);
+  }, [transactions, accounts, goals, salesOrders, mutations]);
 
   return (
     <div>

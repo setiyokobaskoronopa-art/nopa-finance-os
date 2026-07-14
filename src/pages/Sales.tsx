@@ -93,13 +93,13 @@ export default function Sales() {
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalBayar = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
+    const totalOmzet = orders.reduce((s, o) => s + o.hargaTotalProduk, 0);
     const totalProvit = orders.reduce((s, o) => s + o.grossProvit, 0);
     const count = orders.length;
-    const aov = count > 0 ? totalBayar / count : 0;
     return [
       { id: "s1", label: "Total Penjualan", value: formatCurrency(totalBayar), icon: "TrendingUp", accent: "primary" },
       { id: "s2", label: "Jumlah Order", value: String(count), icon: "ShoppingBag", accent: "success" },
-      { id: "s3", label: "AOV (Rata-rata Order)", value: formatCurrency(aov), icon: "Receipt", accent: "secondary" },
+      { id: "s3", label: "Total Omzet", value: formatCurrency(totalOmzet), icon: "Receipt", accent: "secondary" },
       { id: "s4", label: "Total Gross Provit", value: formatCurrency(totalProvit), icon: "TrendingUp", accent: "success" },
     ];
   }, [orders]);

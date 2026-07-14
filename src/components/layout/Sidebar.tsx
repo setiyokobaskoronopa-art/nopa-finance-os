@@ -21,6 +21,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/utils/cn";
 import { useGoalsStore } from "@/store/goalsStore";
+import { useSalesStore } from "@/store/entityStores";
+import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
+import { computeLabaBersihBisnis, AUTO_LINKED_GOAL_ID } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 
 interface NavItem {
@@ -53,8 +56,12 @@ interface SidebarProps {
 
 export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const goals = useGoalsStore((s) => s.goals);
+  const orders = useSalesStore((s) => s.items);
+  const mutations = useBusinessMutationsStore((s) => s.items);
   const mainGoal = goals[0];
-  const pct = mainGoal && mainGoal.target > 0 ? Math.min(100, Math.round((mainGoal.collected / mainGoal.target) * 100)) : 0;
+  const labaBersih = computeLabaBersihBisnis(orders, mutations);
+  const collected = mainGoal?.id === AUTO_LINKED_GOAL_ID ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
+  const pct = mainGoal && mainGoal.target > 0 ? Math.min(100, Math.round((collected / mainGoal.target) * 100)) : 0;
 
   return (
     <>
@@ -141,7 +148,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
             <div className="h-full rounded-full bg-white transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
           <p className="mt-2 text-[11px] text-primary-100">
-            {mainGoal ? `${formatCurrency(mainGoal.collected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur"}
+            {mainGoal ? `${formatCurrency(collected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur"}
           </p>
         </div>
       </aside>

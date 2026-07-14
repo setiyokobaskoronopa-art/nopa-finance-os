@@ -19,6 +19,7 @@ export interface FieldConfig {
   options?: string[];
   placeholder?: string;
   defaultValue?: string;
+  optional?: boolean;
 }
 
 interface EntityFormDialogProps {
@@ -51,7 +52,7 @@ export function EntityFormDialog({
   }, [open]);
 
   const handleSubmit = () => {
-    const requiredOk = fields.every((f) => (f.options ? true : values[f.key]?.toString().trim()));
+    const requiredOk = fields.every((f) => (f.options || f.optional ? true : values[f.key]?.toString().trim()));
     if (!requiredOk) return;
     onSubmit(values);
     onOpenChange(false);

@@ -1,83 +1,49 @@
-import { useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useMemo, useState } from "react";
 import { Link2, Plus } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { DataTable } from "@/components/shared/DataTable";
+import { EntityFormDialog, type FieldConfig } from "@/components/shared/EntityFormDialog";
 import { KpiCard } from "@/components/dashboard/KpiCard";
+import { MutationsTable } from "@/components/dashboard/MutationsTable";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { formatCurrency } from "@/utils/format";
+import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { useSalesStore } from "@/store/entityStores";
-import type { KpiDatum, TableColumn, GenericRow } from "@/types/finance";
+import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
+import type { KpiDatum } from "@/types/finance";
 
-interface BrandSummary extends GenericRow {
-  brand: string;
-  jumlahOrder: number;
-  omzet: number;
-  beban: number;
-  laba: number;
-  margin: string;
-}
-
-const columns: TableColumn<BrandSummary>[] = [
-  { key: "brand", header: "Produk / Brand" },
-  { key: "jumlahOrder", header: "Jumlah Order", align: "center" },
-  { key: "omzet", header: "Omzet (Total Customer Bayar)", align: "right", render: (r) => formatCurrency(r.omzet) },
-  { key: "beban", header: "Beban (HPP + Biaya COD + Ongkir)", align: "right", render: (r) => formatCurrency(r.beban) },
-  {
-    key: "laba",
-    header: "Laba Bersih (Gross Provit)",
-    align: "right",
-    render: (r) => <span className="font-semibold text-success-600">{formatCurrency(r.laba)}</span>,
-  },
-  { key: "margin", header: "Margin", align: "right" },
+const fields: FieldConfig[] = [
+  { key: "kategori", label: "Keperluan", options: ["Ads", "Biaya Lainnya", "Prive", "Return"] },
+  { key: "jumlah", label: "Jumlah (Rp)", type: "number", placeholder: "0" },
+  { key: "keterangan", label: "Keterangan", placeholder: "Contoh: Tiktok Ads, Operasional Juli", optional: true },
 ];
 
 export default function BusinessFinance() {
   const orders = useSalesStore((s) => s.items);
-  const navigate = useNavigate();
+  const mutations = useBusinessMutationsStore((s) => s.items);
+  const addMutation = useBusinessMutationsStore((s) => s.addItem);
+  const removeMutation = useBusinessMutationsStore((s) => s.removeItem);
+  const [open, setOpen] = useState(false);
 
-  const { kpis, rows } = useMemo(() => {
-    const totalOmzet = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
-    const totalBeban = orders.reduce((s, o) => s + o.hpp + o.biayaCod + o.pajakCod + o.diskonOngkir + o.promo, 0);
-    const totalLaba = orders.reduce((s, o) => s + o.grossProvit, 0);
-    const margin = totalOmzet > 0 ? `${((totalLaba / totalOmzet) * 100).toFixed(1)}%` : "0%";
+  const kpis = useMemo<KpiDatum[]>(() => {
+    const omzet = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
+    const hpp = orders.reduce((s, o) => s + o.hpp, 0);
+    const biayaOperasional = orders.reduce((s, o) => s + o.biayaCod + o.pajakCod + o.diskonOngkir + o.promo, 0);
+    const labaKotor = orders.reduce((s, o) => s + o.grossProvit, 0);
+    const totalMutasi = mutations.reduce((s, m) => s + m.jumlah, 0);
+    const labaBersih = labaKotor - totalMutasi;
+    const margin = omzet > 0 ? `${((labaBersih / omzet) * 100).toFixed(1)}%` : "0%";
+    const adsSpend = mutations.filter((m) => m.kategori === "Ads").reduce((s, m) => s + m.jumlah, 0);
+    const roas = adsSpend > 0 ? `${(omzet / adsSpend).toFixed(1)}x` : "-";
 
-    const kpis: KpiDatum[] = [
-      { id: "b1", label: "Omzet Bisnis", value: formatCurrency(totalOmzet), icon: "Building2", accent: "primary", footnote: "Dari seluruh order penjualan" },
-      { id: "b2", label: "Beban Operasional", value: formatCurrency(totalBeban), icon: "Factory", accent: "warning", footnote: "HPP + biaya COD + ongkir + promo" },
-      { id: "b3", label: "Laba Bersih", value: formatCurrency(totalLaba), icon: "TrendingUp", accent: "success", footnote: "Total gross provit" },
-      { id: "b4", label: "Margin Laba", value: margin, icon: "Percent", accent: "secondary", footnote: "Laba bersih / omzet" },
+    return [
+      { id: "b1", label: "Omzet Bisnis", value: formatCurrency(omzet), icon: "Building2", accent: "primary", footnote: "Dari seluruh order penjualan" },
+      { id: "b2", label: "HPP", value: formatCurrency(hpp), icon: "Package", accent: "secondary", footnote: "Harga pokok penjualan" },
+      { id: "b3", label: "Biaya Operasional", value: formatCurrency(biayaOperasional), icon: "Factory", accent: "warning", footnote: "Biaya COD + ongkir + promo" },
+      { id: "b4", label: "Laba Bersih", value: formatCurrency(labaBersih), icon: "TrendingUp", accent: "success", footnote: "Laba kotor dikurangi mutasi" },
+      { id: "b5", label: "Margin Laba", value: margin, icon: "Percent", accent: "secondary", footnote: "Laba bersih / omzet" },
+      { id: "b6", label: "ROAS", value: roas, icon: "Target", accent: "primary", footnote: "Omzet / biaya Ads" },
     ];
-
-    const grouped = new Map<string, BrandSummary>();
-    for (const o of orders) {
-      const key = o.produk.trim() || "Tanpa Nama Produk";
-      const beban = o.hpp + o.biayaCod + o.pajakCod + o.diskonOngkir + o.promo;
-      const existing = grouped.get(key);
-      if (existing) {
-        existing.jumlahOrder += 1;
-        existing.omzet += o.totalCustomerBayar;
-        existing.beban += beban;
-        existing.laba += o.grossProvit;
-      } else {
-        grouped.set(key, {
-          id: key,
-          brand: key,
-          jumlahOrder: 1,
-          omzet: o.totalCustomerBayar,
-          beban,
-          laba: o.grossProvit,
-          margin: "0%",
-        });
-      }
-    }
-    const rows = Array.from(grouped.values())
-      .map((r) => ({ ...r, margin: r.omzet > 0 ? `${((r.laba / r.omzet) * 100).toFixed(1)}%` : "0%" }))
-      .sort((a, b) => b.omzet - a.omzet);
-
-    return { kpis, rows };
-  }, [orders]);
+  }, [orders, mutations]);
 
   return (
     <div>
@@ -85,18 +51,19 @@ export default function BusinessFinance() {
         title="Keuangan Bisnis"
         description="Ringkasan keuangan bisnis, dihitung otomatis dari data Penjualan."
         action={
-          <Button size="sm" onClick={() => navigate("/penjualan")}>
-            <Plus size={15} /> Buat Order
+          <Button size="sm" onClick={() => setOpen(true)}>
+            <Plus size={15} /> Tambah Mutasi
           </Button>
         }
       />
 
       <div className="mb-6 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
         <Link2 size={14} className="shrink-0" />
-        Halaman ini otomatis dihitung dari setiap order di <strong className="mx-1">Penjualan</strong> — tidak ada input manual di sini.
+        Omzet, HPP & Biaya Operasional otomatis dari <strong className="mx-1">Penjualan</strong>. Laba Bersih otomatis masuk ke{" "}
+        <strong className="mx-1">Target 100 Juta Pertama</strong>.
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((kpi, idx) => (
           <KpiCard key={kpi.id} data={kpi} index={idx} />
         ))}
@@ -105,18 +72,31 @@ export default function BusinessFinance() {
       <div className="mt-6">
         <Card>
           <CardHeader>
-            <CardTitle>Ringkasan per Produk / Brand</CardTitle>
+            <CardTitle>Mutasi Bisnis</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <DataTable
-              columns={columns}
-              rows={rows}
-              emptyTitle="Belum ada data"
-              emptyDescription="Buat order di halaman Penjualan untuk melihat ringkasan di sini."
-            />
+            <MutationsTable rows={mutations} onDelete={removeMutation} />
           </CardContent>
         </Card>
       </div>
+
+      <EntityFormDialog
+        open={open}
+        onOpenChange={setOpen}
+        title="Tambah Mutasi"
+        description="Catat pengeluaran Ads, biaya lainnya, prive, atau return."
+        fields={fields}
+        submitLabel="Simpan Mutasi"
+        onSubmit={(v) => {
+          const jumlah = Number(v.jumlah.replace(/[^0-9]/g, "")) || 0;
+          addMutation({
+            tanggal: formatDateSlash(new Date()),
+            kategori: v.kategori,
+            jumlah,
+            keterangan: v.keterangan || "",
+          });
+        }}
+      />
     </div>
   );
 }
