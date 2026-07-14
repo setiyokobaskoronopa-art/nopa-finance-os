@@ -14,9 +14,18 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { useSalesStore } from "@/store/entityStores";
 import { useAuthStore } from "@/store/authStore";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
+import { PRODUCT_PRICING, PRODUCT_NAMES } from "@/data/productPricing";
 
 const COD_FEE_RATE = 0.03; // 3%
-const COD_TAX_RATE = 0.0033; // 0.33% (dihitung dari data aktual sheet kamu)
+const COD_TAX_RATE = 0.0033; // 0.33% (dihitung dari data aktual laporan kamu)
+
+const EKSPEDIS_OPTIONS = ["JNE", "J&T", "SICEPAT", "LION", "POS", "GOJEK"];
+const METODE_OPTIONS = ["Transfer", "COD", "Kredit"];
+const KODE_OPTIONS = [
+  { value: "O", label: "O - OTS" },
+  { value: "F", label: "F - Follow Up" },
+  { value: "R", label: "R - Repeat" },
+];
 
 interface AddSalesOrderDialogProps {
   open: boolean;
@@ -30,9 +39,10 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   const [cs, setCs] = useState(profile.name || "");
   const [namaCustomer, setNamaCustomer] = useState("");
   const [kode, setKode] = useState("O");
-  const [ekspedis, setEkspedis] = useState("");
-  const [produk, setProduk] = useState("");
-  const [box, setBox] = useState("");
+  const [metodePembayaran, setMetodePembayaran] = useState("Transfer");
+  const [ekspedis, setEkspedis] = useState(EKSPEDIS_OPTIONS[0]);
+  const [produk, setProduk] = useState(PRODUCT_NAMES[0]);
+  const [box, setBox] = useState("1");
   const [hargaTotalProduk, setHargaTotalProduk] = useState("");
   const [diskonOngkir, setDiskonOngkir] = useState("0");
   const [totalCustomerBayar, setTotalCustomerBayar] = useState("");
@@ -40,19 +50,41 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   const [hpp, setHpp] = useState("");
   const [status, setStatus] = useState("On Proses");
 
+  const boxOptions = PRODUCT_PRICING[produk] ?? [];
+
+  const applyPricing = (produkName: string, boxValue: string) => {
+    const tier = PRODUCT_PRICING[produkName]?.find((t) => String(t.box) === boxValue);
+    if (tier) {
+      setHpp(String(tier.hpp));
+      setHargaTotalProduk(String(tier.hargaJual));
+    }
+  };
+
+  const handleProdukChange = (v: string) => {
+    setProduk(v);
+    const firstBox = String(PRODUCT_PRICING[v]?.[0]?.box ?? "1");
+    setBox(firstBox);
+    applyPricing(v, firstBox);
+  };
+
+  const handleBoxChange = (v: string) => {
+    setBox(v);
+    applyPricing(produk, v);
+  };
+
   const reset = () => {
     setCs(profile.name || "");
     setNamaCustomer("");
     setKode("O");
-    setEkspedis("");
-    setProduk("");
-    setBox("");
-    setHargaTotalProduk("");
+    setMetodePembayaran("Transfer");
+    setEkspedis(EKSPEDIS_OPTIONS[0]);
+    setProduk(PRODUCT_NAMES[0]);
+    setBox("1");
     setDiskonOngkir("0");
     setTotalCustomerBayar("");
     setPromo("0");
-    setHpp("");
     setStatus("On Proses");
+    applyPricing(PRODUCT_NAMES[0], "1");
   };
 
   useEffect(() => {
@@ -61,7 +93,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   }, [open]);
 
   const num = (v: string) => Number(v.replace(/[^0-9]/g, "")) || 0;
-  const isCod = /cod/i.test(ekspedis);
+  const isCod = metodePembayaran === "COD";
 
   const preview = useMemo(() => {
     const totalBayar = num(totalCustomerBayar) || num(hargaTotalProduk);
@@ -80,9 +112,10 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
       tanggal: formatDateSlash(new Date()),
       namaCustomer: namaCustomer.trim(),
       kode,
-      ekspedis: ekspedis.trim(),
-      produk: produk.trim(),
-      box: box.trim(),
+      metodePembayaran,
+      ekspedis,
+      produk,
+      box,
       hargaTotalProduk: num(hargaTotalProduk),
       diskonOngkir: num(diskonOngkir),
       totalCustomerBayar: preview.totalBayar,
@@ -104,7 +137,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
         <DialogHeader>
           <DialogTitle>Buat Order Baru</DialogTitle>
           <DialogDescription>
-            Isi sesuai kolom laporan penjualan Anda. Biaya COD, Cash In, dan Gross Provit dihitung otomatis.
+            Pilih produk & box — HPP otomatis terisi. Biaya COD, Cash In, dan Gross Provit dihitung otomatis.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,8 +154,11 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="O">(O) Online / Transfer</SelectItem>
-                  <SelectItem value="R">(R) COD / Retur</SelectItem>
+                  {KODE_OPTIONS.map((k) => (
+                    <SelectItem key={k.value} value={k.value}>
+                      {k.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -135,32 +171,79 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Ekspedis</label>
-              <Input
-                value={ekspedis}
-                onChange={(e) => setEkspedis(e.target.value)}
-                placeholder="Contoh: JNT TIKTOK, JNE COD"
-              />
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Metode Pembayaran</label>
+              <Select value={metodePembayaran} onValueChange={setMetodePembayaran}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METODE_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={m}>
+                      {m}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Produk</label>
-              <Input value={produk} onChange={(e) => setProduk(e.target.value)} placeholder="Contoh: DVN Collagen" />
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Ekspedisi</label>
+              <Select value={ekspedis} onValueChange={setEkspedis}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EKSPEDIS_OPTIONS.map((e) => (
+                    <SelectItem key={e} value={e}>
+                      {e}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-secondary-500">Box</label>
-            <Input value={box} onChange={(e) => setBox(e.target.value)} placeholder="Contoh: 5 Sachet, 1+1" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Harga Total Produk (Rp)</label>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Produk</label>
+              <Select value={produk} onValueChange={handleProdukChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCT_NAMES.map((p) => (
+                    <SelectItem key={p} value={p}>
+                      {p}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Box</label>
+              <Select value={box} onValueChange={handleBoxChange}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {boxOptions.map((t) => (
+                    <SelectItem key={t.box} value={String(t.box)}>
+                      {t.box} Box — {formatCurrency(t.hargaJual, { compact: true })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">
+                Harga Total Produk (Rp) <span className="text-secondary-300">— otomatis</span>
+              </label>
               <Input
                 inputMode="numeric"
                 value={hargaTotalProduk}
                 onChange={(e) => setHargaTotalProduk(e.target.value)}
-                placeholder="0"
               />
             </div>
             <div>
@@ -189,8 +272,10 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">HPP (Rp)</label>
-              <Input inputMode="numeric" value={hpp} onChange={(e) => setHpp(e.target.value)} placeholder="0" />
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">
+                HPP (Rp) <span className="text-secondary-300">— otomatis</span>
+              </label>
+              <Input inputMode="numeric" value={hpp} onChange={(e) => setHpp(e.target.value)} />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-secondary-500">Status</label>
@@ -208,7 +293,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
 
           <div className="rounded-2xl border border-primary-100 bg-primary-50/50 p-4 dark:border-primary-500/20 dark:bg-primary-500/5">
             <p className="mb-2 text-xs font-semibold text-primary-700 dark:text-primary-300">
-              Kalkulasi Otomatis {isCod && "(COD terdeteksi dari Ekspedis)"}
+              Kalkulasi Otomatis {isCod && "(Metode Pembayaran: COD)"}
             </p>
             <div className="grid grid-cols-2 gap-y-1.5 text-xs text-secondary-600 dark:text-secondary-300">
               <span>Biaya COD (3%)</span>

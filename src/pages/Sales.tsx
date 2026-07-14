@@ -13,12 +13,21 @@ const statusVariant: Record<string, "success" | "warning"> = {
   "On Proses": "warning",
 };
 
+const kodeLabel: Record<string, string> = { O: "OTS", F: "Follow Up", R: "Repeat" };
+const kodeVariant: Record<string, "default" | "warning" | "success"> = { O: "default", F: "warning", R: "success" };
+
 const columns: TableColumn<SalesOrder>[] = [
   { key: "tanggal", header: "Tanggal" },
   { key: "cs", header: "CS" },
   { key: "namaCustomer", header: "Customer" },
-  { key: "kode", header: "Kode", align: "center" },
-  { key: "ekspedis", header: "Ekspedis" },
+  {
+    key: "kode",
+    header: "Kode",
+    align: "center",
+    render: (r) => <Badge variant={kodeVariant[r.kode] ?? "default"}>{kodeLabel[r.kode] ?? r.kode}</Badge>,
+  },
+  { key: "metodePembayaran", header: "Metode Bayar" },
+  { key: "ekspedis", header: "Ekspedisi" },
   { key: "produk", header: "Produk" },
   { key: "box", header: "Box", align: "center" },
   { key: "hargaTotalProduk", header: "Harga Total Produk", align: "right", render: (r) => formatCurrency(r.hargaTotalProduk) },
