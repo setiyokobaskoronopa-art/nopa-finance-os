@@ -45,11 +45,22 @@ export const salesKpis: KpiDatum[] = [
 ];
 
 export interface SalesOrder extends GenericRow {
-  order: string;
-  channel: string;
-  customer: string;
+  cs: string;
   tanggal: string;
-  total: number;
+  namaCustomer: string;
+  kode: string;
+  ekspedis: string;
+  produk: string;
+  box: string;
+  hargaTotalProduk: number;
+  diskonOngkir: number;
+  totalCustomerBayar: number;
+  biayaCod: number;
+  pajakCod: number;
+  promo: number;
+  cashIn: number;
+  hpp: number;
+  grossProvit: number;
   status: string;
 }
 

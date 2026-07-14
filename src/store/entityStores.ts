@@ -1,6 +1,5 @@
 import { createEntityStore } from "@/store/createEntityStore";
 import type {
-  BusinessEntry,
   SalesOrder,
   ProductItem,
   CustomerItem,
@@ -12,7 +11,6 @@ import type {
 } from "@/data/pagesDummy";
 import type { PersonalTx } from "@/data/pagesDummy";
 
-export const useBusinessStore = createEntityStore<BusinessEntry>("business");
 export const useSalesStore = createEntityStore<SalesOrder>("sales");
 export const useProductsStore = createEntityStore<ProductItem>("products");
 export const useCustomersStore = createEntityStore<CustomerItem>("customers");
