@@ -10,7 +10,7 @@ import { AddGoalDialog } from "@/components/dashboard/AddGoalDialog";
 import { useGoalsStore } from "@/store/goalsStore";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis, AUTO_LINKED_GOAL_ID } from "@/utils/businessCalc";
+import { computeLabaBersihBisnis } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 
 export default function Goals() {
@@ -61,7 +61,7 @@ export default function Goals() {
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {goals.map((g) => {
-            const isAutoLinked = g.id === AUTO_LINKED_GOAL_ID;
+            const isAutoLinked = g.autoLinked;
             const collected = isAutoLinked ? Math.max(0, labaBersih) : g.collected;
             const pct = g.target > 0 ? Math.min(100, Math.round((collected / g.target) * 100)) : 0;
             return (

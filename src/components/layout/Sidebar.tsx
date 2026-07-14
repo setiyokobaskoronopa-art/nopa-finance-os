@@ -23,7 +23,7 @@ import { cn } from "@/utils/cn";
 import { useGoalsStore } from "@/store/goalsStore";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis, AUTO_LINKED_GOAL_ID } from "@/utils/businessCalc";
+import { computeLabaBersihBisnis } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 
 interface NavItem {
@@ -60,7 +60,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const mutations = useBusinessMutationsStore((s) => s.items);
   const mainGoal = goals[0];
   const labaBersih = computeLabaBersihBisnis(orders, mutations);
-  const collected = mainGoal?.id === AUTO_LINKED_GOAL_ID ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
+  const collected = mainGoal?.autoLinked ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
   const pct = mainGoal && mainGoal.target > 0 ? Math.min(100, Math.round((collected / mainGoal.target) * 100)) : 0;
 
   return (

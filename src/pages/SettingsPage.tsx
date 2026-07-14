@@ -48,6 +48,7 @@ export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
   const profile = useAuthStore((s) => s.profile);
   const updateProfile = useAuthStore((s) => s.updateProfile);
+  const uploadAvatar = useAuthStore((s) => s.uploadAvatar);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(profile.name);
@@ -72,11 +73,7 @@ export default function SettingsPage() {
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      updateProfile({ photo: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+    uploadAvatar(file);
   };
 
   return (

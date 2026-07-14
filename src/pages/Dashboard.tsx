@@ -21,7 +21,7 @@ import { useGoalsStore } from "@/store/goalsStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSalesStore, useInvestmentStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis, AUTO_LINKED_GOAL_ID } from "@/utils/businessCalc";
+import { computeLabaBersihBisnis } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 import type { KpiDatum } from "@/types/finance";
 
@@ -53,7 +53,7 @@ export default function Dashboard() {
     const investasiTotal = investments.reduce((sum, i) => sum + i.nilai, 0);
 
     const mainGoal = goals[0];
-    const goalCollected = mainGoal?.id === AUTO_LINKED_GOAL_ID ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
+    const goalCollected = mainGoal?.autoLinked ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
     const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((goalCollected / mainGoal.target) * 100) : 0;
 
     return dashboardKpis.map((kpi) => {

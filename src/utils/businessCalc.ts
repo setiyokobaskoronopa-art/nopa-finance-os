@@ -1,8 +1,6 @@
 import type { SalesOrder } from "@/data/pagesDummy";
 import type { BusinessMutation } from "@/store/businessMutationsStore";
 
-export const AUTO_LINKED_GOAL_ID = "goal-100jt";
-
 export function getEffectiveGrossProvit(order: SalesOrder): number {
   return order.status === "Return" ? 0 : order.grossProvit;
 }
