@@ -1,21 +1,39 @@
+import { useMemo } from "react";
 import Chart from "react-apexcharts";
 import { LineChart } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { formatCurrency } from "@/utils/format";
-import { cashFlowSeries } from "@/data/dummy";
+import { getLastNMonths, isInBucket } from "@/utils/monthBuckets";
+import { useSalesStore } from "@/store/entityStores";
+import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 
 export function CashFlowChart() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const orders = useSalesStore((s) => s.items);
+  const mutations = useBusinessMutationsStore((s) => s.items);
 
-  const hasData = cashFlowSeries.income.some((v) => v > 0) || cashFlowSeries.expense.some((v) => v > 0);
+  const { categories, income, expense, hasData } = useMemo(() => {
+    const buckets = getLastNMonths(7);
+    const income = buckets.map((b) => {
+      const sales = orders.filter((o) => isInBucket(o.tanggal, b)).reduce((s, o) => s + o.cashIn, 0);
+      return sales;
+    });
+    const expense = buckets.map((b) => {
+      const mut = mutations.filter((m) => isInBucket(m.tanggal, b)).reduce((s, m) => s + m.jumlah, 0);
+      return mut;
+    });
+    const hasData = income.some((v) => v > 0) || expense.some((v) => v > 0);
+    return { categories: buckets.map((b) => b.label), income, expense, hasData };
+  }, [orders, mutations]);
+
   if (!hasData) {
     return (
       <EmptyState
         icon={LineChart}
         title="Belum ada data cash flow"
-        description="Grafik akan terisi setelah ada transaksi pemasukan atau pengeluaran."
+        description="Grafik akan terisi setelah ada order Penjualan atau Mutasi Bisnis."
       />
     );
   }
@@ -45,7 +63,7 @@ export function CashFlowChart() {
       strokeDashArray: 4,
     },
     xaxis: {
-      categories: cashFlowSeries.categories,
+      categories,
       labels: { style: { colors: isDark ? "#94A3B8" : "#64748B", fontSize: "12px" } },
       axisBorder: { show: false },
       axisTicks: { show: false },
@@ -69,8 +87,8 @@ export function CashFlowChart() {
   };
 
   const series = [
-    { name: "Pemasukan", data: cashFlowSeries.income },
-    { name: "Pengeluaran", data: cashFlowSeries.expense },
+    { name: "Cash In (Penjualan)", data: income },
+    { name: "Mutasi Bisnis", data: expense },
   ];
 
   return <Chart options={options} series={series} type="area" height={300} />;

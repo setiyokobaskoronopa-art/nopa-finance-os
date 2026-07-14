@@ -70,5 +70,5 @@ export interface TableColumn<T> {
 
 export interface GenericRow {
   id: string;
-  [key: string]: string | number;
+  [key: string]: unknown;
 }

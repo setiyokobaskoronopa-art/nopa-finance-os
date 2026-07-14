@@ -49,26 +49,29 @@ export default function Products() {
   const { kpis, rows } = useMemo(() => {
     const grouped = new Map<string, StockRow>();
     for (const o of orders) {
-      const key = o.produk.trim() || "Tanpa Nama Produk";
-      const unit = Number(o.box) || 0;
       const isReturn = o.status === "Return";
-      const existing = grouped.get(key);
-      if (existing) {
-        existing.jumlahOrder += 1;
-        existing.unitTerjual += unit;
-        existing.totalReturn += isReturn ? 1 : 0;
-        existing.totalHpp += o.hpp;
-      } else {
-        grouped.set(key, {
-          id: key,
-          produk: key,
-          jumlahOrder: 1,
-          unitTerjual: unit,
-          totalReturn: isReturn ? 1 : 0,
-          returnRate: "0%",
-          stockReturnTersedia: 0,
-          totalHpp: o.hpp,
-        });
+      const items = o.items && o.items.length > 0 ? o.items : [{ produk: o.produk, box: o.box, hpp: o.hpp, hargaJual: o.hargaTotalProduk, hppSource: o.hppSource }];
+      for (const item of items) {
+        const key = item.produk.trim() || "Tanpa Nama Produk";
+        const unit = Number(item.box) || 0;
+        const existing = grouped.get(key);
+        if (existing) {
+          existing.jumlahOrder += 1;
+          existing.unitTerjual += unit;
+          existing.totalReturn += isReturn ? 1 : 0;
+          existing.totalHpp += item.hpp;
+        } else {
+          grouped.set(key, {
+            id: key,
+            produk: key,
+            jumlahOrder: 1,
+            unitTerjual: unit,
+            totalReturn: isReturn ? 1 : 0,
+            returnRate: "0%",
+            stockReturnTersedia: 0,
+            totalHpp: item.hpp,
+          });
+        }
       }
     }
     const rows = Array.from(grouped.values())

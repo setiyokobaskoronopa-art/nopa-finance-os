@@ -44,6 +44,14 @@ export const salesKpis: KpiDatum[] = [
   { id: "s4", label: "Refund Rate", value: "0%", icon: "Undo2", accent: "secondary" },
 ];
 
+export interface OrderLineItem {
+  produk: string;
+  box: string;
+  hpp: number;
+  hargaJual: number;
+  hppSource: string;
+}
+
 export interface SalesOrder extends GenericRow {
   cs: string;
   tanggal: string;
@@ -56,6 +64,7 @@ export interface SalesOrder extends GenericRow {
   produk: string;
   box: string;
   hppSource: string;
+  items: OrderLineItem[];
   hargaTotalProduk: number;
   diskonOngkir: number;
   totalCustomerBayar: number;

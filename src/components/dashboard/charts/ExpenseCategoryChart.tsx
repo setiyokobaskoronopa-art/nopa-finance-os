@@ -1,19 +1,58 @@
+import { useMemo } from "react";
 import Chart from "react-apexcharts";
 import { PieChart } from "lucide-react";
 import { useTheme } from "@/hooks/useTheme";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { expenseCategorySeries } from "@/data/dummy";
+import { useSalesStore } from "@/store/entityStores";
+import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
+
+const CATEGORY_COLORS: Record<string, string> = {
+  "HPP Produk": "#0F172A",
+  "Biaya COD + Ongkir + Promo": "#F59E0B",
+  Ads: "#2563EB",
+  "Biaya Lainnya": "#64748B",
+  Prive: "#EF4444",
+  Return: "#94A3B8",
+};
 
 export function ExpenseCategoryChart() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const orders = useSalesStore((s) => s.items);
+  const mutations = useBusinessMutationsStore((s) => s.items);
 
-  if (expenseCategorySeries.length === 0) {
+  const { labels, series, colors } = useMemo(() => {
+    const hpp = orders.reduce((s, o) => s + o.hpp, 0);
+    const biayaOperasional = orders.reduce((s, o) => s + o.biayaCod + o.pajakCod + o.diskonOngkir + o.promo, 0);
+    const byKategori: Record<string, number> = { Ads: 0, "Biaya Lainnya": 0, Prive: 0, Return: 0 };
+    for (const m of mutations) {
+      if (byKategori[m.kategori] !== undefined) byKategori[m.kategori] += m.jumlah;
+    }
+
+    const entries = (
+      [
+        ["HPP Produk", hpp],
+        ["Biaya COD + Ongkir + Promo", biayaOperasional],
+        ["Ads", byKategori["Ads"]],
+        ["Biaya Lainnya", byKategori["Biaya Lainnya"]],
+        ["Prive", byKategori["Prive"]],
+        ["Return", byKategori["Return"]],
+      ] as [string, number][]
+    ).filter(([, v]) => v > 0);
+
+    return {
+      labels: entries.map(([l]) => l),
+      series: entries.map(([, v]) => v),
+      colors: entries.map(([l]) => CATEGORY_COLORS[l] ?? "#94A3B8"),
+    };
+  }, [orders, mutations]);
+
+  if (series.length === 0) {
     return (
       <EmptyState
         icon={PieChart}
         title="Belum ada data pengeluaran"
-        description="Grafik kategori akan terisi setelah ada pengeluaran tercatat."
+        description="Grafik kategori akan terisi setelah ada order Penjualan atau Mutasi Bisnis."
       />
     );
   }
@@ -25,8 +64,8 @@ export function ExpenseCategoryChart() {
       background: "transparent",
     },
     theme: { mode: isDark ? "dark" : "light" },
-    labels: expenseCategorySeries.map((c) => c.label),
-    colors: expenseCategorySeries.map((c) => c.color),
+    labels,
+    colors,
     stroke: { show: true, width: 3, colors: [isDark ? "#111827" : "#FFFFFF"] },
     dataLabels: {
       enabled: true,
@@ -58,8 +97,6 @@ export function ExpenseCategoryChart() {
     },
     tooltip: { theme: isDark ? "dark" : "light" },
   };
-
-  const series = expenseCategorySeries.map((c) => c.value);
 
   return <Chart options={options} series={series} type="donut" height={300} />;
 }

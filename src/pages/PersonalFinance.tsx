@@ -20,7 +20,11 @@ export default function PersonalFinance() {
   const manualRows = usePersonalTxStore((s) => s.items);
   const addItem = usePersonalTxStore((s) => s.addItem);
   const removeItem = usePersonalTxStore((s) => s.removeItem);
-  const priveMutations = useBusinessMutationsStore((s) => s.items.filter((m) => m.kategori === "Prive"));
+  const businessMutations = useBusinessMutationsStore((s) => s.items);
+  const priveMutations = useMemo(
+    () => businessMutations.filter((m) => m.kategori === "Prive"),
+    [businessMutations]
+  );
   const [open, setOpen] = useState(false);
 
   const priveRows = useMemo<PersonalTx[]>(

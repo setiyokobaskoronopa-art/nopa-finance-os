@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Trash2 } from "lucide-react";
 import type { GenericRow, TableColumn } from "@/types/finance";
 import { cn } from "@/utils/cn";
@@ -57,7 +58,7 @@ export function DataTable<T extends GenericRow>({
                     col.align === "center" && "text-center"
                   )}
                 >
-                  {col.render ? col.render(row) : row[col.key as string]}
+                  {col.render ? col.render(row) : (row[col.key as string] as ReactNode)}
                 </td>
               ))}
               {onDelete && (
