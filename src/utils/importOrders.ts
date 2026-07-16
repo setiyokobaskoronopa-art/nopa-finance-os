@@ -171,9 +171,21 @@ function normalizeHeader(h: unknown): string {
   return String(h ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+function parseManualDate(value: unknown): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return formatDateSlash(value);
+  }
+  const text = String(value ?? "").trim();
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(text)) return text;
+  return "";
+}
+
 const MANUAL_HEADER_MAP: Record<string, string> = {
   CS: "cs",
   TANGGAL: "tanggal",
+  NAMACUSTOMER: "namaCustomer",
+  CUSTOMER: "namaCustomer",
+  NAMA: "namaCustomer",
   KODE: "kode",
   EKSPEDIS: "ekspedis",
   EKSPEDISI: "ekspedis",
@@ -198,7 +210,7 @@ export function parseManualFile(arrayBuffer: ArrayBuffer, fileName: string): Par
   const isCsv = fileName.toLowerCase().endsWith(".csv");
   const workbook = isCsv
     ? XLSX.read(new TextDecoder().decode(arrayBuffer), { type: "string" })
-    : XLSX.read(arrayBuffer, { type: "array" });
+    : XLSX.read(arrayBuffer, { type: "array", cellDates: true });
 
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
@@ -215,7 +227,7 @@ export function parseManualFile(arrayBuffer: ArrayBuffer, fileName: string): Par
     }
 
     const namaCustomer = String(mapped.namaCustomer ?? "").trim();
-    const tanggal = String(mapped.tanggal ?? "").trim();
+    const tanggal = parseManualDate(mapped.tanggal);
     const hargaTotalProduk = toNumber(mapped.hargaTotalProduk);
 
     if (!tanggal || !hargaTotalProduk) {
@@ -239,7 +251,7 @@ export function parseManualFile(arrayBuffer: ArrayBuffer, fileName: string): Par
 
     orders.push({
       cs: String(mapped.cs ?? "Setyo").trim() || "Setyo",
-      tanggal: /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(tanggal) ? tanggal : formatDateSlash(new Date()),
+      tanggal,
       namaCustomer: namaCustomer || "Tanpa Nama",
       noWa: "",
       kode: ["O", "F", "R"].includes(kode) ? kode : "O",
