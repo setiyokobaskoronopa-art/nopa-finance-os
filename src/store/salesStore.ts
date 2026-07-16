@@ -35,6 +35,7 @@ interface SalesState {
   addItem: (item: NewSalesOrder) => Promise<void>;
   addManyItems: (items: NewSalesOrder[]) => Promise<{ successCount: number; errorMessage: string | null }>;
   removeItem: (id: string) => Promise<void>;
+  removeAllItems: () => Promise<void>;
   updateItem: (id: string, patch: Partial<SalesOrder>) => Promise<void>;
 }
 
@@ -227,6 +228,18 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
     const { error } = await supabase.from("sales_orders").delete().eq("id", id);
     if (error) {
       console.error("[sales_orders] delete error:", error.message);
+      set({ items: prev });
+    }
+  },
+
+  removeAllItems: async () => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+    const prev = get().items;
+    set({ items: [] });
+    const { error } = await supabase.from("sales_orders").delete().eq("user_id", userData.user.id);
+    if (error) {
+      console.error("[sales_orders] delete all error:", error.message);
       set({ items: prev });
     }
   },

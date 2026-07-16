@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link2, Upload } from "lucide-react";
+import { Link2, Upload, Trash2 } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { AddSalesOrderDialog } from "@/components/dashboard/AddSalesOrderDialog";
 import { ImportOrdersDialog } from "@/components/dashboard/ImportOrdersDialog";
@@ -102,9 +102,11 @@ const columns: TableColumn<SalesOrder>[] = [
 export default function Sales() {
   const orders = useSalesStore((s) => s.items);
   const removeItem = useSalesStore((s) => s.removeItem);
+  const removeAllItems = useSalesStore((s) => s.removeAllItems);
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalBayar = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
@@ -127,9 +129,29 @@ export default function Sales() {
           Data ini otomatis terhubung ke <strong className="mx-1">Keuangan Bisnis</strong>,{" "}
           <strong className="mx-1">Customer</strong>, dan <strong className="mx-1">Stok & Return</strong> — klik dropdown Status untuk update progres order.
         </div>
-        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="shrink-0">
-          <Upload size={15} /> Import Order
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="shrink-0">
+            <Upload size={15} /> Import Order
+          </Button>
+          {orders.length > 0 && (
+            <Button
+              variant={confirmClearAll ? "destructive" : "outline"}
+              size="sm"
+              onClick={() => {
+                if (confirmClearAll) {
+                  removeAllItems();
+                  setConfirmClearAll(false);
+                } else {
+                  setConfirmClearAll(true);
+                  setTimeout(() => setConfirmClearAll(false), 4000);
+                }
+              }}
+              className="shrink-0"
+            >
+              <Trash2 size={15} /> {confirmClearAll ? `Yakin hapus ${orders.length} order?` : "Hapus Semua"}
+            </Button>
+          )}
+        </div>
       </div>
       <FinancePageTemplate
         title="Penjualan"
