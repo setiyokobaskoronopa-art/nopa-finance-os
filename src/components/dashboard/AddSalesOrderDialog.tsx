@@ -10,6 +10,7 @@ import {
   DialogClose,
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
+import { DateInput } from "@/components/ui/DateInput";
 import { Button } from "@/components/ui/Button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { useSalesStore } from "@/store/entityStores";
@@ -52,6 +53,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
   const isEditing = Boolean(editingOrder);
 
   const [cs, setCs] = useState(profile.name || "");
+  const [tanggal, setTanggal] = useState(formatDateSlash(new Date()));
   const [namaCustomer, setNamaCustomer] = useState("");
   const [noWa, setNoWa] = useState("");
   const [kode, setKode] = useState("O");
@@ -71,6 +73,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
 
   const reset = () => {
     setCs(profile.name || "");
+    setTanggal(formatDateSlash(new Date()));
     setNamaCustomer("");
     setNoWa("");
     setKode("O");
@@ -89,6 +92,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
     if (editingOrder) {
       skipNextSyncRef.current = true;
       setCs(editingOrder.cs);
+      setTanggal(editingOrder.tanggal);
       setNamaCustomer(editingOrder.namaCustomer);
       setNoWa(editingOrder.noWa);
       setKode(editingOrder.kode);
@@ -194,9 +198,9 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
     };
 
     if (isEditing && editingOrder) {
-      updateItem(editingOrder.id, payload);
+      updateItem(editingOrder.id, { ...payload, tanggal });
     } else {
-      addItem({ ...payload, tanggal: formatDateSlash(new Date()), externalOrderId: null });
+      addItem({ ...payload, tanggal, externalOrderId: null });
     }
 
     onOpenChange(false);
@@ -215,7 +219,11 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Tanggal</label>
+              <DateInput value={tanggal} onChange={setTanggal} />
+            </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-secondary-500">CS</label>
               <Input value={cs} onChange={(e) => setCs(e.target.value)} placeholder="Nama CS" />

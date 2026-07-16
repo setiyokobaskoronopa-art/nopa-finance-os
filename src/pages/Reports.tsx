@@ -12,6 +12,7 @@ const fields: FieldConfig[] = [
   { key: "nama", label: "Nama Laporan", placeholder: "Contoh: Laporan Keuangan Juli 2026" },
   { key: "periode", label: "Periode", placeholder: "Contoh: Jul 2026" },
   { key: "tipe", label: "Tipe", options: ["Bulanan", "Kuartalan", "Semesteran", "Tahunan"] },
+  { key: "dibuat", label: "Tanggal Dibuat", type: "date", defaultValue: formatDateSlash(new Date()) },
 ];
 
 const columns: TableColumn<ReportRow>[] = [
@@ -60,7 +61,7 @@ export default function Reports() {
 
   const editingRow = rows.find((r) => r.id === editingId) ?? null;
   const initialValues = editingRow
-    ? { nama: editingRow.nama, periode: editingRow.periode, tipe: editingRow.tipe }
+    ? { nama: editingRow.nama, periode: editingRow.periode, tipe: editingRow.tipe, dibuat: editingRow.dibuat }
     : null;
 
   const handleOpenAdd = () => {
@@ -98,9 +99,9 @@ export default function Reports() {
         initialValues={initialValues}
         onSubmit={(v) => {
           if (editingId) {
-            updateItem(editingId, { nama: v.nama, periode: v.periode, tipe: v.tipe });
+            updateItem(editingId, { nama: v.nama, periode: v.periode, tipe: v.tipe, dibuat: v.dibuat });
           } else {
-            addItem({ nama: v.nama, periode: v.periode, tipe: v.tipe, dibuat: formatDateSlash(new Date()) });
+            addItem({ nama: v.nama, periode: v.periode, tipe: v.tipe, dibuat: v.dibuat || formatDateSlash(new Date()) });
           }
         }}
       />

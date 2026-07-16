@@ -9,13 +9,14 @@ import {
   DialogClose,
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
+import { DateInput } from "@/components/ui/DateInput";
 import { Button } from "@/components/ui/Button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 
 export interface FieldConfig {
   key: string;
   label: string;
-  type?: "text" | "number";
+  type?: "text" | "number" | "date";
   options?: string[];
   placeholder?: string;
   defaultValue?: string;
@@ -88,6 +89,11 @@ export function EntityFormDialog({
                     ))}
                   </SelectContent>
                 </Select>
+              ) : f.type === "date" ? (
+                <DateInput
+                  value={values[f.key] ?? ""}
+                  onChange={(v) => setValues((prev) => ({ ...prev, [f.key]: v }))}
+                />
               ) : (
                 <Input
                   placeholder={f.placeholder}

@@ -10,6 +10,7 @@ import type { PersonalTx } from "@/data/pagesDummy";
 import type { KpiDatum, TableColumn } from "@/types/finance";
 
 const fields: FieldConfig[] = [
+  { key: "tanggal", label: "Tanggal", type: "date", defaultValue: formatDateSlash(new Date()) },
   { key: "keterangan", label: "Keterangan", placeholder: "Contoh: Belanja bulanan" },
   { key: "kategori", label: "Kategori", options: ["Kebutuhan Harian", "Transportasi", "Cicilan", "Tabungan", "Pemasukan", "Lainnya"] },
   { key: "jumlah", label: "Jumlah (Rp)", type: "number", placeholder: "0" },
@@ -67,6 +68,7 @@ export default function PersonalFinance() {
   const editingRow = manualRows.find((r) => r.id === editingId) ?? null;
   const initialValues = editingRow
     ? {
+        tanggal: editingRow.tanggal,
         keterangan: editingRow.keterangan,
         kategori: editingRow.kategori,
         jumlah: String(editingRow.jumlah),
@@ -117,9 +119,9 @@ export default function PersonalFinance() {
         onSubmit={(v) => {
           const jumlah = Number(v.jumlah.replace(/[^0-9]/g, "")) || 0;
           if (editingId) {
-            updateItem(editingId, { keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
+            updateItem(editingId, { tanggal: v.tanggal, keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
           } else {
-            addItem({ tanggal: formatDateSlash(new Date()), keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
+            addItem({ tanggal: v.tanggal || formatDateSlash(new Date()), keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
           }
         }}
       />

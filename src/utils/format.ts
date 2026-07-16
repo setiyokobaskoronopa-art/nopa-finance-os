@@ -53,3 +53,18 @@ export function parseDateSlash(value: string): Date | null {
   if (!day || !month || !year) return null;
   return new Date(year, month - 1, day);
 }
+
+// Konversi untuk <input type="date"> native (format wajib yyyy-mm-dd)
+export function dateSlashToISO(dateSlash: string): string {
+  const parts = dateSlash.split("/");
+  if (parts.length !== 3) return "";
+  const [d, m, y] = parts;
+  return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+}
+
+export function isoToDateSlash(iso: string): string {
+  const parts = iso.split("-");
+  if (parts.length !== 3) return "";
+  const [y, m, d] = parts;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
+}

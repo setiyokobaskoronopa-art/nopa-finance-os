@@ -13,6 +13,7 @@ import { computeLabaBersihBisnis, computeHppTerbayar } from "@/utils/businessCal
 import type { KpiDatum } from "@/types/finance";
 
 const fields: FieldConfig[] = [
+  { key: "tanggal", label: "Tanggal", type: "date", defaultValue: formatDateSlash(new Date()) },
   { key: "kategori", label: "Keperluan", options: ["Ads", "Biaya Lainnya", "Prive", "Bayar HPP", "Return"] },
   { key: "jumlah", label: "Jumlah (Rp)", type: "number", placeholder: "0" },
   { key: "keterangan", label: "Keterangan", placeholder: "Contoh: Tiktok Ads, Bayar CV Sumber Kolagen", optional: true },
@@ -118,17 +119,19 @@ export default function BusinessFinance() {
           editingId
             ? (() => {
                 const row = mutations.find((m) => m.id === editingId);
-                return row ? { kategori: row.kategori, jumlah: String(row.jumlah), keterangan: row.keterangan } : null;
+                return row
+                  ? { tanggal: row.tanggal, kategori: row.kategori, jumlah: String(row.jumlah), keterangan: row.keterangan }
+                  : null;
               })()
             : null
         }
         onSubmit={(v) => {
           const jumlah = Number(v.jumlah.replace(/[^0-9]/g, "")) || 0;
           if (editingId) {
-            updateMutation(editingId, { kategori: v.kategori, jumlah, keterangan: v.keterangan || "" });
+            updateMutation(editingId, { tanggal: v.tanggal, kategori: v.kategori, jumlah, keterangan: v.keterangan || "" });
           } else {
             addMutation({
-              tanggal: formatDateSlash(new Date()),
+              tanggal: v.tanggal || formatDateSlash(new Date()),
               kategori: v.kategori,
               jumlah,
               keterangan: v.keterangan || "",

@@ -9,10 +9,11 @@ import {
   DialogClose,
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
+import { DateInput } from "@/components/ui/DateInput";
 import { Button } from "@/components/ui/Button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { useTransactionsStoreBase } from "@/store/transactionsStore";
-import { formatDateShort } from "@/utils/format";
+import { formatDateSlash } from "@/utils/format";
 import type { TransactionItem } from "@/types/finance";
 
 const categories = [
@@ -48,6 +49,7 @@ export function AddTransactionDialog({
   const isEditing = Boolean(editingTransaction);
 
   const [name, setName] = useState("");
+  const [tanggal, setTanggal] = useState(formatDateSlash(new Date()));
   const [category, setCategory] = useState(categories[0]);
   const [method, setMethod] = useState(methods[0]);
   const [amount, setAmount] = useState("");
@@ -57,18 +59,21 @@ export function AddTransactionDialog({
     if (!open) return;
     if (editingTransaction) {
       setName(editingTransaction.name);
+      setTanggal(editingTransaction.date);
       setCategory(editingTransaction.category);
       setMethod(editingTransaction.method);
       setAmount(String(editingTransaction.amount));
       setType(editingTransaction.type);
     } else {
       setType(defaultType);
+      setTanggal(formatDateSlash(new Date()));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultType, editingTransaction]);
 
   const reset = () => {
     setName("");
+    setTanggal(formatDateSlash(new Date()));
     setCategory(categories[0]);
     setMethod(methods[0]);
     setAmount("");
@@ -82,6 +87,7 @@ export function AddTransactionDialog({
     if (isEditing && editingTransaction) {
       updateItem(editingTransaction.id, {
         name: name.trim(),
+        date: tanggal,
         category,
         amount: numericAmount,
         type,
@@ -91,7 +97,7 @@ export function AddTransactionDialog({
       addItem({
         name: name.trim(),
         category,
-        date: formatDateShort(new Date()),
+        date: tanggal,
         amount: numericAmount,
         type,
         status: "success",
@@ -155,14 +161,20 @@ export function AddTransactionDialog({
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-secondary-500">Jumlah (Rp)</label>
-            <Input
-              placeholder="0"
-              inputMode="numeric"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Tanggal</label>
+              <DateInput value={tanggal} onChange={setTanggal} />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Jumlah (Rp)</label>
+              <Input
+                placeholder="0"
+                inputMode="numeric"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
