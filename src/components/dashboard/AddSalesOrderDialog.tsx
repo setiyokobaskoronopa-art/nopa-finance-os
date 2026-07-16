@@ -56,6 +56,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
   const [tanggal, setTanggal] = useState(formatDateSlash(new Date()));
   const [namaCustomer, setNamaCustomer] = useState("");
   const [noWa, setNoWa] = useState("");
+  const [awbNumber, setAwbNumber] = useState("");
   const [kode, setKode] = useState("O");
   const [platform, setPlatform] = useState(PLATFORM_OPTIONS[0]);
   const [metodePembayaran, setMetodePembayaran] = useState("Transfer");
@@ -76,6 +77,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
     setTanggal(formatDateSlash(new Date()));
     setNamaCustomer("");
     setNoWa("");
+    setAwbNumber("");
     setKode("O");
     setPlatform(PLATFORM_OPTIONS[0]);
     setMetodePembayaran("Transfer");
@@ -95,6 +97,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
       setTanggal(editingOrder.tanggal);
       setNamaCustomer(editingOrder.namaCustomer);
       setNoWa(editingOrder.noWa);
+      setAwbNumber(editingOrder.awbNumber ?? "");
       setKode(editingOrder.kode);
       setPlatform(editingOrder.platform);
       setMetodePembayaran(editingOrder.metodePembayaran);
@@ -177,6 +180,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
       cs: cs.trim() || "Setyo",
       namaCustomer: namaCustomer.trim(),
       noWa: noWa.trim(),
+      awbNumber: awbNumber.trim() || null,
       kode,
       platform,
       metodePembayaran,
@@ -250,9 +254,17 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
             <Input value={namaCustomer} onChange={(e) => setNamaCustomer(e.target.value)} placeholder="Nama pelanggan" />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-secondary-500">No. WhatsApp</label>
-            <Input value={noWa} onChange={(e) => setNoWa(e.target.value)} placeholder="08xx-xxxx-xxxx" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">No. WhatsApp</label>
+              <Input value={noWa} onChange={(e) => setNoWa(e.target.value)} placeholder="08xx-xxxx-xxxx" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">
+                No. Resi (AWB) <span className="text-secondary-300">— opsional</span>
+              </label>
+              <Input value={awbNumber} onChange={(e) => setAwbNumber(e.target.value)} placeholder="Dari Everpro/kurir" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

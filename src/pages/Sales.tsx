@@ -3,6 +3,7 @@ import { Link2, Upload, Trash2 } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { AddSalesOrderDialog } from "@/components/dashboard/AddSalesOrderDialog";
 import { ImportOrdersDialog } from "@/components/dashboard/ImportOrdersDialog";
+import { EverproCallbackLog } from "@/components/dashboard/EverproCallbackLog";
 import { TableFilterBar, FILTER_ALL } from "@/components/shared/TableFilterBar";
 import { Button } from "@/components/ui/Button";
 import { formatCurrency, parseDateSlash } from "@/utils/format";
@@ -60,6 +61,7 @@ const columns: TableColumn<SalesOrder>[] = [
   { key: "cs", header: "CS" },
   { key: "namaCustomer", header: "Customer" },
   { key: "noWa", header: "No. WA", render: (r) => r.noWa || "-" },
+  { key: "awbNumber", header: "No. Resi", render: (r) => r.awbNumber || "-" },
   {
     key: "kode",
     header: "Kode",
@@ -239,6 +241,7 @@ export default function Sales() {
       />
       <AddSalesOrderDialog open={open} onOpenChange={setOpen} editingOrder={editingOrder} />
       <ImportOrdersDialog open={importOpen} onOpenChange={setImportOpen} />
+      <EverproCallbackLog />
     </>
   );
 }

@@ -157,6 +157,7 @@ export function parseGlobemerceCsv(
       grossProvit,
       status: mapGlobemerceStatus(row.status || ""),
       externalOrderId,
+      awbNumber: null,
     });
   }
 
@@ -273,6 +274,7 @@ export function parseManualFile(arrayBuffer: ArrayBuffer, fileName: string): Par
       grossProvit,
       status,
       externalOrderId: null,
+      awbNumber: null,
     });
   }
 

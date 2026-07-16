@@ -26,6 +26,7 @@ export interface NewSalesOrder {
   grossProvit: number;
   status: string;
   externalOrderId: string | null;
+  awbNumber: string | null;
 }
 
 interface SalesState {
@@ -63,6 +64,7 @@ function orderToRow(item: Partial<NewSalesOrder>): Record<string, unknown> {
   if (item.grossProvit !== undefined) row.gross_provit = item.grossProvit;
   if (item.status !== undefined) row.status = item.status;
   if (item.externalOrderId !== undefined) row.external_order_id = item.externalOrderId;
+  if (item.awbNumber !== undefined) row.awb_number = item.awbNumber;
   return row;
 }
 
@@ -103,6 +105,7 @@ function orderFromRow(row: Record<string, unknown>): SalesOrder {
     grossProvit: Number(row.gross_provit),
     status: row.status as string,
     externalOrderId: (row.external_order_id as string) ?? null,
+    awbNumber: (row.awb_number as string) ?? null,
   };
 }
 

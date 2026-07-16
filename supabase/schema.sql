@@ -121,6 +121,8 @@ create table if not exists public.sales_orders (
 );
 alter table public.sales_orders add column if not exists external_order_id text;
 create index if not exists sales_orders_external_order_id_idx on public.sales_orders(user_id, external_order_id);
+alter table public.sales_orders add column if not exists awb_number text;
+create index if not exists sales_orders_awb_number_idx on public.sales_orders(user_id, awb_number);
 alter table public.sales_orders enable row level security;
 drop policy if exists "own sales_orders" on public.sales_orders;
 create policy "own sales_orders" on public.sales_orders for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
@@ -254,6 +256,31 @@ create table if not exists public.reports (
 alter table public.reports enable row level security;
 drop policy if exists "own reports" on public.reports;
 create policy "own reports" on public.reports for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ----------------------------------------------------------------------------
+-- EVERPRO CALLBACKS (log semua webhook masuk dari Everpro, buat audit & fallback
+-- kalau auto-match ke order gagal)
+-- ----------------------------------------------------------------------------
+create table if not exists public.everpro_callbacks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  callback_type text not null default 'tracking', -- tracking | awb | bulk_order | last_mile
+  awb_number text,
+  client_order_no text,
+  order_reference_id text,
+  tracking_code text,
+  cancel_reason text,
+  raw_payload jsonb not null default '{}'::jsonb,
+  matched_order_id uuid references public.sales_orders(id) on delete set null,
+  matched boolean not null default false,
+  received_at timestamptz not null default now()
+);
+create index if not exists everpro_callbacks_awb_idx on public.everpro_callbacks(awb_number);
+alter table public.everpro_callbacks enable row level security;
+drop policy if exists "own everpro_callbacks" on public.everpro_callbacks;
+create policy "own everpro_callbacks" on public.everpro_callbacks for select using (auth.uid() = user_id);
+-- Catatan: INSERT ke tabel ini dilakukan oleh Edge Function pakai service_role key
+-- (bukan lewat RLS biasa), karena Everpro yang kirim datanya, bukan user yang login.
 
 -- ----------------------------------------------------------------------------
 -- Storage bucket untuk foto profil (buat manual di menu Storage jika belum ada)
