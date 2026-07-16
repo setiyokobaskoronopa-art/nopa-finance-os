@@ -34,12 +34,14 @@ export function ImportOrdersDialog({ open, onOpenChange }: ImportOrdersDialogPro
   const [result, setResult] = useState<ParsedImportResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [done, setDone] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setFileName("");
     setResult(null);
     setDone(null);
+    setErrorMessage(null);
   };
 
   const handleFile = async (file: File) => {
@@ -60,9 +62,11 @@ export function ImportOrdersDialog({ open, onOpenChange }: ImportOrdersDialogPro
   const handleConfirm = async () => {
     if (!result || result.orders.length === 0) return;
     setImporting(true);
-    const successCount = await addManyItems(result.orders as NewSalesOrder[]);
+    setErrorMessage(null);
+    const { successCount, errorMessage: errMsg } = await addManyItems(result.orders as NewSalesOrder[]);
     setImporting(false);
     setDone(successCount);
+    if (errMsg) setErrorMessage(errMsg);
   };
 
   const handleClose = (v: boolean) => {
@@ -85,15 +89,32 @@ export function ImportOrdersDialog({ open, onOpenChange }: ImportOrdersDialogPro
 
         {done !== null ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-success-50 text-success-600 dark:bg-success-500/10">
-              <CheckCircle2 size={22} />
+            <span
+              className={`flex h-12 w-12 items-center justify-center rounded-2xl ${
+                done > 0
+                  ? "bg-success-50 text-success-600 dark:bg-success-500/10"
+                  : "bg-danger-50 text-danger-600 dark:bg-danger-500/10"
+              }`}
+            >
+              {done > 0 ? <CheckCircle2 size={22} /> : <AlertCircle size={22} />}
             </span>
             <p className="font-semibold text-secondary-900 dark:text-white">
               {done} order berhasil diimport
             </p>
-            <p className="text-xs text-secondary-400">
-              Data langsung muncul di Penjualan, Keuangan Bisnis, Customer, dan Stok & Return.
-            </p>
+            {errorMessage ? (
+              <div className="w-full rounded-xl bg-danger-50 px-4 py-3 text-left text-xs text-danger-600 dark:bg-danger-500/10">
+                <p className="font-semibold">Ada order yang gagal disimpan:</p>
+                <p className="mt-1 font-mono text-[11px] leading-relaxed">{errorMessage}</p>
+                <p className="mt-2 text-secondary-500 dark:text-secondary-400">
+                  Kalau pesannya menyebut kolom/column tidak ditemukan, kemungkinan ada migrasi database yang
+                  belum dijalankan — kirim pesan error ini ke Claude untuk diperbaiki.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-secondary-400">
+                Data langsung muncul di Penjualan, Keuangan Bisnis, Customer, dan Stok & Return.
+              </p>
+            )}
             <Button onClick={() => handleClose(false)}>Selesai</Button>
           </div>
         ) : (

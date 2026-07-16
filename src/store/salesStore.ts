@@ -33,7 +33,7 @@ interface SalesState {
   loading: boolean;
   fetchItems: () => Promise<void>;
   addItem: (item: NewSalesOrder) => Promise<void>;
-  addManyItems: (items: NewSalesOrder[]) => Promise<number>;
+  addManyItems: (items: NewSalesOrder[]) => Promise<{ successCount: number; errorMessage: string | null }>;
   removeItem: (id: string) => Promise<void>;
   updateItem: (id: string, patch: Partial<SalesOrder>) => Promise<void>;
 }
@@ -169,9 +169,10 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
 
   addManyItems: async (items) => {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return 0;
+    if (!userData.user) return { successCount: 0, errorMessage: "Sesi login tidak ditemukan. Coba logout lalu login lagi." };
     const userId = userData.user.id;
     let successCount = 0;
+    let firstError: string | null = null;
     const inserted: SalesOrder[] = [];
 
     for (const item of items) {
@@ -182,6 +183,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
         .single();
       if (orderError || !orderRow) {
         console.error("[sales_orders] bulk insert error:", orderError?.message);
+        if (!firstError) firstError = orderError?.message ?? "Gagal menyimpan order.";
         continue;
       }
       const lineItems = item.items ?? [];
@@ -216,7 +218,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
     if (inserted.length > 0) {
       set((state) => ({ items: [...inserted, ...state.items] }));
     }
-    return successCount;
+    return { successCount, errorMessage: firstError };
   },
 
   removeItem: async (id) => {
