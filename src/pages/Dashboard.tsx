@@ -21,7 +21,7 @@ import { useGoalsStore } from "@/store/goalsStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSalesStore, useInvestmentStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis } from "@/utils/businessCalc";
+import { computeLabaBersihBisnis, computeTotalProfit } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 import type { KpiDatum } from "@/types/finance";
 
@@ -36,11 +36,13 @@ export default function Dashboard() {
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const { income: manualIncome, expense: manualExpense } = selectTotals(transactions);
-    const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0);
+    const manualNet = manualIncome - manualExpense;
+    const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0) + manualNet;
 
     const salesCashIn = salesOrders.reduce((sum, o) => sum + o.cashIn, 0);
     const totalMutasi = mutations.reduce((sum, m) => sum + m.jumlah, 0);
-    const labaBersih = computeLabaBersihBisnis(salesOrders, mutations);
+    const labaBersihBisnis = computeLabaBersihBisnis(salesOrders, mutations);
+    const profitBulanan = labaBersihBisnis + manualNet;
 
     const pemasukan = manualIncome + salesCashIn;
     const pengeluaran = manualExpense + totalMutasi;
@@ -53,13 +55,13 @@ export default function Dashboard() {
     const investasiTotal = investments.reduce((sum, i) => sum + i.nilai, 0);
 
     const mainGoal = goals[0];
-    const goalCollected = mainGoal?.autoLinked ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
+    const goalCollected = mainGoal?.autoLinked ? Math.max(0, profitBulanan) : mainGoal?.collected ?? 0;
     const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((goalCollected / mainGoal.target) * 100) : 0;
 
     return dashboardKpis.map((kpi) => {
       switch (kpi.id) {
         case "saldo-total":
-          return { ...kpi, value: formatCurrency(saldoTotal), footnote: `${accounts.length} rekening aktif` };
+          return { ...kpi, value: formatCurrency(saldoTotal), footnote: `${accounts.length} rekening + transaksi manual` };
         case "cash-flow":
           return { ...kpi, value: formatCurrency(cashFlow), footnote: "Manual + Penjualan bisnis" };
         case "pemasukan":
@@ -67,7 +69,7 @@ export default function Dashboard() {
         case "pengeluaran":
           return { ...kpi, value: formatCurrency(pengeluaran), footnote: "Manual + Mutasi Bisnis" };
         case "profit-bulanan":
-          return { ...kpi, value: formatCurrency(labaBersih), footnote: "Laba Bersih dari Keuangan Bisnis" };
+          return { ...kpi, value: formatCurrency(profitBulanan), footnote: "Manual + Laba Bersih Bisnis" };
         case "investasi":
           return { ...kpi, value: formatCurrency(investasiTotal), footnote: `${investments.length} instrumen` };
         case "roas":

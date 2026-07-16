@@ -10,7 +10,8 @@ import { AddGoalDialog } from "@/components/dashboard/AddGoalDialog";
 import { useGoalsStore, type Goal } from "@/store/goalsStore";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis } from "@/utils/businessCalc";
+import { useTransactionsStore } from "@/store/transactionsStore";
+import { computeTotalProfit } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 
 export default function Goals() {
@@ -19,7 +20,8 @@ export default function Goals() {
   const addToGoal = useGoalsStore((s) => s.addToGoal);
   const orders = useSalesStore((s) => s.items);
   const mutations = useBusinessMutationsStore((s) => s.items);
-  const labaBersih = computeLabaBersihBisnis(orders, mutations);
+  const transactions = useTransactionsStore((s) => s.transactions);
+  const labaBersih = computeTotalProfit(orders, mutations, transactions);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [contributions, setContributions] = useState<Record<string, string>>({});
@@ -124,7 +126,7 @@ export default function Goals() {
                   {isAutoLinked ? (
                     <div className="mt-4 flex items-center gap-2 rounded-xl bg-primary-50/60 px-3 py-2 text-[11px] text-primary-700 dark:bg-primary-500/5 dark:text-primary-300">
                       <Link2 size={12} className="shrink-0" />
-                      Otomatis dari Laba Bersih di halaman Keuangan Bisnis
+                      Otomatis dari Laba Bersih Bisnis + transaksi manual
                     </div>
                   ) : (
                     <div className="mt-4 flex gap-2">

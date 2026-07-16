@@ -23,7 +23,8 @@ import { cn } from "@/utils/cn";
 import { useGoalsStore } from "@/store/goalsStore";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis } from "@/utils/businessCalc";
+import { useTransactionsStore } from "@/store/transactionsStore";
+import { computeTotalProfit } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 
 interface NavItem {
@@ -58,9 +59,10 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const goals = useGoalsStore((s) => s.goals);
   const orders = useSalesStore((s) => s.items);
   const mutations = useBusinessMutationsStore((s) => s.items);
+  const transactions = useTransactionsStore((s) => s.transactions);
   const mainGoal = goals[0];
-  const labaBersih = computeLabaBersihBisnis(orders, mutations);
-  const collected = mainGoal?.autoLinked ? Math.max(0, labaBersih) : mainGoal?.collected ?? 0;
+  const totalProfit = computeTotalProfit(orders, mutations, transactions);
+  const collected = mainGoal?.autoLinked ? Math.max(0, totalProfit) : mainGoal?.collected ?? 0;
   const pct = mainGoal && mainGoal.target > 0 ? Math.min(100, Math.round((collected / mainGoal.target) * 100)) : 0;
 
   return (

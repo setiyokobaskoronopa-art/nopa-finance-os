@@ -22,3 +22,17 @@ export function computeLabaBersihBisnis(orders: SalesOrder[], mutations: Busines
 export function computeHppTerbayar(mutations: BusinessMutation[]): number {
   return mutations.filter((m) => m.kategori === HPP_PAYMENT_CATEGORY).reduce((sum, m) => sum + m.jumlah, 0);
 }
+
+/** Total profit gabungan: Laba Bersih Bisnis + transaksi manual (Pemasukan - Pengeluaran). */
+export function computeTotalProfit(
+  orders: SalesOrder[],
+  mutations: BusinessMutation[],
+  manualTransactions: { type: "income" | "expense"; amount: number }[]
+): number {
+  const labaBersihBisnis = computeLabaBersihBisnis(orders, mutations);
+  const manualNet = manualTransactions.reduce(
+    (sum, t) => sum + (t.type === "income" ? t.amount : -t.amount),
+    0
+  );
+  return labaBersihBisnis + manualNet;
+}
