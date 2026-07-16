@@ -3,7 +3,7 @@ import { formatCurrency } from "@/utils/format";
 import { EmptyState } from "@/components/shared/EmptyState";
 import type { BusinessMutation } from "@/store/businessMutationsStore";
 
-const CATEGORIES = ["Ads", "Biaya Lainnya", "Prive", "Return"] as const;
+const CATEGORIES = ["Ads", "Biaya Lainnya", "Prive", "Bayar HPP", "Return"] as const;
 
 export function MutationsTable({
   rows,
@@ -31,7 +31,7 @@ export function MutationsTable({
 
   return (
     <div className="scrollbar-thin overflow-x-auto">
-      <table className="w-full min-w-[860px] text-left text-sm">
+      <table className="w-full min-w-[960px] text-left text-sm">
         <thead>
           <tr className="border-b border-secondary-100 dark:border-secondary-800">
             <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">No</th>

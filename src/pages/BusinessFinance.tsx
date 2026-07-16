@@ -9,13 +9,13 @@ import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { getEffectiveGrossProvit } from "@/utils/businessCalc";
+import { computeLabaBersihBisnis, computeHppTerbayar } from "@/utils/businessCalc";
 import type { KpiDatum } from "@/types/finance";
 
 const fields: FieldConfig[] = [
-  { key: "kategori", label: "Keperluan", options: ["Ads", "Biaya Lainnya", "Prive", "Return"] },
+  { key: "kategori", label: "Keperluan", options: ["Ads", "Biaya Lainnya", "Prive", "Bayar HPP", "Return"] },
   { key: "jumlah", label: "Jumlah (Rp)", type: "number", placeholder: "0" },
-  { key: "keterangan", label: "Keterangan", placeholder: "Contoh: Tiktok Ads, Operasional Juli", optional: true },
+  { key: "keterangan", label: "Keterangan", placeholder: "Contoh: Tiktok Ads, Bayar CV Sumber Kolagen", optional: true },
 ];
 
 export default function BusinessFinance() {
@@ -29,20 +29,27 @@ export default function BusinessFinance() {
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const omzet = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
-    const hpp = orders.reduce((s, o) => s + o.hpp, 0);
+    const hppTerjual = orders.reduce((s, o) => s + o.hpp, 0);
+    const hppTerbayar = computeHppTerbayar(mutations);
+    const sisaHpp = Math.max(0, hppTerjual - hppTerbayar);
     const biayaOperasional = orders.reduce((s, o) => s + o.biayaCod + o.pajakCod + o.diskonOngkir + o.promo, 0);
-    const labaKotor = orders.reduce((s, o) => s + getEffectiveGrossProvit(o), 0);
-    const totalMutasi = mutations.reduce((s, m) => s + m.jumlah, 0);
-    const labaBersih = labaKotor - totalMutasi;
+    const labaBersih = computeLabaBersihBisnis(orders, mutations);
     const margin = omzet > 0 ? `${((labaBersih / omzet) * 100).toFixed(1)}%` : "0%";
     const adsSpend = mutations.filter((m) => m.kategori === "Ads").reduce((s, m) => s + m.jumlah, 0);
     const roas = adsSpend > 0 ? `${(omzet / adsSpend).toFixed(1)}x` : "-";
 
     return [
       { id: "b1", label: "Omzet Bisnis", value: formatCurrency(omzet), icon: "Building2", accent: "primary", footnote: "Dari seluruh order penjualan" },
-      { id: "b2", label: "HPP", value: formatCurrency(hpp), icon: "Package", accent: "secondary", footnote: "Harga pokok penjualan" },
+      {
+        id: "b2",
+        label: "Sisa HPP Belum Dibayar",
+        value: formatCurrency(sisaHpp),
+        icon: "Package",
+        accent: sisaHpp > 0 ? "warning" : "success",
+        footnote: `Total HPP ${formatCurrency(hppTerjual, { compact: true })} — sudah dibayar ${formatCurrency(hppTerbayar, { compact: true })}`,
+      },
       { id: "b3", label: "Biaya Operasional", value: formatCurrency(biayaOperasional), icon: "Factory", accent: "warning", footnote: "Biaya COD + ongkir + promo" },
-      { id: "b4", label: "Laba Bersih", value: formatCurrency(labaBersih), icon: "TrendingUp", accent: "success", footnote: "Laba kotor dikurangi mutasi" },
+      { id: "b4", label: "Laba Bersih", value: formatCurrency(labaBersih), icon: "TrendingUp", accent: "success", footnote: "Laba kotor dikurangi mutasi (kecuali Bayar HPP)" },
       { id: "b5", label: "Margin Laba", value: margin, icon: "Percent", accent: "secondary", footnote: "Laba bersih / omzet" },
       { id: "b6", label: "ROAS", value: roas, icon: "Target", accent: "primary", footnote: "Omzet / biaya Ads" },
     ];
@@ -103,7 +110,7 @@ export default function BusinessFinance() {
         description={
           editingId
             ? "Perbarui data mutasi bisnis."
-            : "Catat pengeluaran Ads, biaya lainnya, prive, atau return."
+            : "Catat pengeluaran Ads, biaya lainnya, prive, pembayaran HPP, atau return."
         }
         fields={fields}
         submitLabel={editingId ? "Simpan Perubahan" : "Simpan Mutasi"}
