@@ -2,12 +2,17 @@ import { useMemo, useState } from "react";
 import { Link2 } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { EntityFormDialog, type FieldConfig } from "@/components/shared/EntityFormDialog";
-import { formatCurrency, formatDateSlash } from "@/utils/format";
+import { TableFilterBar, FILTER_ALL } from "@/components/shared/TableFilterBar";
+import { formatCurrency, formatDateSlash, parseDateSlash } from "@/utils/format";
+import { sortByTanggalDesc } from "@/utils/sortByDate";
 import { Badge } from "@/components/ui/Badge";
 import { usePersonalTxStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 import type { PersonalTx } from "@/data/pagesDummy";
 import type { KpiDatum, TableColumn } from "@/types/finance";
+
+const KATEGORI_OPTIONS = ["Kebutuhan Harian", "Transportasi", "Cicilan", "Tabungan", "Pemasukan", "Lainnya", "Prive dari Bisnis"];
+const JENIS_OPTIONS = ["Keluar", "Masuk"];
 
 const fields: FieldConfig[] = [
   { key: "tanggal", label: "Tanggal", type: "date", defaultValue: formatDateSlash(new Date()) },
@@ -44,6 +49,47 @@ export default function PersonalFinance() {
   );
 
   const rows = useMemo(() => [...priveRows, ...manualRows], [priveRows, manualRows]);
+
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [kategoriFilter, setKategoriFilter] = useState(FILTER_ALL);
+  const [jenisFilter, setJenisFilter] = useState(FILTER_ALL);
+
+  const filtersActive =
+    Boolean(search) || Boolean(dateFrom) || Boolean(dateTo) || kategoriFilter !== FILTER_ALL || jenisFilter !== FILTER_ALL;
+  const resetFilters = () => {
+    setSearch("");
+    setDateFrom("");
+    setDateTo("");
+    setKategoriFilter(FILTER_ALL);
+    setJenisFilter(FILTER_ALL);
+  };
+
+  const filteredRows = useMemo(() => {
+    let result = rows;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((r) => r.keterangan.toLowerCase().includes(q));
+    }
+    if (dateFrom) {
+      const from = parseDateSlash(dateFrom);
+      result = result.filter((r) => {
+        const d = parseDateSlash(r.tanggal);
+        return d && from && d.getTime() >= from.getTime();
+      });
+    }
+    if (dateTo) {
+      const to = parseDateSlash(dateTo);
+      result = result.filter((r) => {
+        const d = parseDateSlash(r.tanggal);
+        return d && to && d.getTime() <= to.getTime();
+      });
+    }
+    if (kategoriFilter !== FILTER_ALL) result = result.filter((r) => r.kategori === kategoriFilter);
+    if (jenisFilter !== FILTER_ALL) result = result.filter((r) => r.jenis === jenisFilter);
+    return sortByTanggalDesc(result);
+  }, [rows, search, dateFrom, dateTo, kategoriFilter, jenisFilter]);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const masuk = rows.filter((r) => r.jenis === "Masuk").reduce((s, r) => s + r.jumlah, 0);
@@ -92,21 +138,36 @@ export default function PersonalFinance() {
         <Link2 size={14} className="shrink-0" />
         Mutasi <strong className="mx-1">Prive</strong> dari halaman Keuangan Bisnis otomatis masuk sebagai pemasukan di sini.
       </div>
+      <TableFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari keterangan..."
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        selects={[
+          { key: "kategori", label: "Kategori", value: kategoriFilter, options: KATEGORI_OPTIONS, onChange: setKategoriFilter },
+          { key: "jenis", label: "Jenis", value: jenisFilter, options: JENIS_OPTIONS, onChange: setJenisFilter },
+        ]}
+        onReset={resetFilters}
+        active={filtersActive}
+      />
       <FinancePageTemplate
         title="Keuangan Pribadi"
         description="Pantau saldo, pengeluaran, dan tabungan pribadi Anda."
         kpis={kpis}
-        tableTitle="Transaksi Pribadi"
+        tableTitle={`Transaksi Pribadi ${filtersActive ? `(${filteredRows.length} hasil filter)` : ""}`}
         columns={columns}
-        rows={rows}
+        rows={filteredRows}
         addLabel="Catat Transaksi"
         onAdd={handleOpenAdd}
         onEdit={handleOpenEdit}
         canEdit={(row) => !row.id.startsWith("prive-")}
         onDelete={(row) => removeItem(row.id)}
         canDelete={(row) => !row.id.startsWith("prive-")}
-        emptyTitle="Belum ada transaksi pribadi"
-        emptyDescription="Catat transaksi pribadi untuk mulai memantau keuangan Anda."
+        emptyTitle={filtersActive ? "Tidak ada transaksi yang cocok" : "Belum ada transaksi pribadi"}
+        emptyDescription={filtersActive ? "Coba ubah atau reset filter kamu." : "Catat transaksi pribadi untuk mulai memantau keuangan Anda."}
       />
       <EntityFormDialog
         open={open}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ArrowDownLeft, ArrowUpRight, Receipt, Trash2, Pencil } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { AddTransactionDialog } from "@/components/dashboard/AddTransactionDialog";
 import { cn } from "@/utils/cn";
 import { formatCurrency } from "@/utils/format";
+import { sortByTanggalDesc } from "@/utils/sortByDate";
 import { useTransactionsStore } from "@/store/transactionsStore";
 import type { TransactionItem } from "@/types/finance";
 
@@ -22,10 +23,15 @@ const statusLabel = {
 };
 
 export function RecentTransactions() {
-  const transactions = useTransactionsStore((s) => s.transactions);
+  const rawTransactions = useTransactionsStore((s) => s.transactions);
   const deleteTransaction = useTransactionsStore((s) => s.deleteTransaction);
   const [editingTransaction, setEditingTransaction] = useState<TransactionItem | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+
+  const transactions = useMemo(
+    () => sortByTanggalDesc(rawTransactions.map((t) => ({ ...t, tanggal: t.date }))),
+    [rawTransactions]
+  );
 
   return (
     <Card>

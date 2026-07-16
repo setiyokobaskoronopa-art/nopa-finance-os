@@ -3,8 +3,10 @@ import { Link2, Upload, Trash2 } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { AddSalesOrderDialog } from "@/components/dashboard/AddSalesOrderDialog";
 import { ImportOrdersDialog } from "@/components/dashboard/ImportOrdersDialog";
+import { TableFilterBar, FILTER_ALL } from "@/components/shared/TableFilterBar";
 import { Button } from "@/components/ui/Button";
-import { formatCurrency } from "@/utils/format";
+import { formatCurrency, parseDateSlash } from "@/utils/format";
+import { sortByTanggalDesc } from "@/utils/sortByDate";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { useSalesStore } from "@/store/entityStores";
@@ -13,6 +15,7 @@ import type { SalesOrder } from "@/data/pagesDummy";
 import type { KpiDatum, TableColumn } from "@/types/finance";
 
 const STATUS_OPTIONS = ["On Proses", "Delivered", "Problem", "Return"];
+const PLATFORM_OPTIONS = ["Database", "Website", "Meta", "Google", "Tiktok Shop", "Organik"];
 
 const statusVariant: Record<string, "success" | "warning" | "danger" | "secondary"> = {
   Delivered: "success",
@@ -108,18 +111,63 @@ export default function Sales() {
   const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
   const [confirmClearAll, setConfirmClearAll] = useState(false);
 
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [statusFilter, setStatusFilter] = useState(FILTER_ALL);
+  const [platformFilter, setPlatformFilter] = useState(FILTER_ALL);
+  const [kodeFilter, setKodeFilter] = useState(FILTER_ALL);
+
+  const filtersActive =
+    Boolean(search) || Boolean(dateFrom) || Boolean(dateTo) || statusFilter !== FILTER_ALL || platformFilter !== FILTER_ALL || kodeFilter !== FILTER_ALL;
+
+  const resetFilters = () => {
+    setSearch("");
+    setDateFrom("");
+    setDateTo("");
+    setStatusFilter(FILTER_ALL);
+    setPlatformFilter(FILTER_ALL);
+    setKodeFilter(FILTER_ALL);
+  };
+
+  const filteredOrders = useMemo(() => {
+    let result = orders;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((o) => o.namaCustomer.toLowerCase().includes(q) || o.noWa.includes(q) || o.produk.toLowerCase().includes(q));
+    }
+    if (dateFrom) {
+      const from = parseDateSlash(dateFrom);
+      result = result.filter((o) => {
+        const d = parseDateSlash(o.tanggal);
+        return d && from && d.getTime() >= from.getTime();
+      });
+    }
+    if (dateTo) {
+      const to = parseDateSlash(dateTo);
+      result = result.filter((o) => {
+        const d = parseDateSlash(o.tanggal);
+        return d && to && d.getTime() <= to.getTime();
+      });
+    }
+    if (statusFilter !== FILTER_ALL) result = result.filter((o) => o.status === statusFilter);
+    if (platformFilter !== FILTER_ALL) result = result.filter((o) => o.platform === platformFilter);
+    if (kodeFilter !== FILTER_ALL) result = result.filter((o) => kodeLabel[o.kode] === kodeFilter);
+    return sortByTanggalDesc(result);
+  }, [orders, search, dateFrom, dateTo, statusFilter, platformFilter, kodeFilter]);
+
   const kpis = useMemo<KpiDatum[]>(() => {
-    const totalBayar = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
-    const totalOmzet = orders.reduce((s, o) => s + o.hargaTotalProduk, 0);
-    const totalProvit = orders.reduce((s, o) => s + getEffectiveGrossProvit(o), 0);
-    const count = orders.length;
+    const totalBayar = filteredOrders.reduce((s, o) => s + o.totalCustomerBayar, 0);
+    const totalOmzet = filteredOrders.reduce((s, o) => s + o.hargaTotalProduk, 0);
+    const totalProvit = filteredOrders.reduce((s, o) => s + getEffectiveGrossProvit(o), 0);
+    const count = filteredOrders.length;
     return [
       { id: "s1", label: "Total Penjualan", value: formatCurrency(totalBayar), icon: "TrendingUp", accent: "primary" },
       { id: "s2", label: "Jumlah Order", value: String(count), icon: "ShoppingBag", accent: "success" },
       { id: "s3", label: "Total Omzet", value: formatCurrency(totalOmzet), icon: "Receipt", accent: "secondary" },
       { id: "s4", label: "Total Gross Provit", value: formatCurrency(totalProvit), icon: "TrendingUp", accent: "success" },
     ];
-  }, [orders]);
+  }, [filteredOrders]);
 
   return (
     <>
@@ -153,13 +201,29 @@ export default function Sales() {
           )}
         </div>
       </div>
+      <TableFilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari customer, no WA, produk..."
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        selects={[
+          { key: "status", label: "Status", value: statusFilter, options: STATUS_OPTIONS, onChange: setStatusFilter },
+          { key: "platform", label: "Platform", value: platformFilter, options: PLATFORM_OPTIONS, onChange: setPlatformFilter },
+          { key: "kode", label: "Kode", value: kodeFilter, options: ["OTS", "Follow Up", "Repeat"], onChange: setKodeFilter },
+        ]}
+        onReset={resetFilters}
+        active={filtersActive}
+      />
       <FinancePageTemplate
         title="Penjualan"
         description="Pantau performa penjualan dari semua channel."
         kpis={kpis}
-        tableTitle="Order Terbaru"
+        tableTitle={`Order ${filtersActive ? `(${filteredOrders.length} hasil filter)` : "Terbaru"}`}
         columns={columns}
-        rows={orders}
+        rows={filteredOrders}
         addLabel="Buat Order"
         onAdd={() => {
           setEditingOrder(null);
@@ -170,8 +234,8 @@ export default function Sales() {
           setOpen(true);
         }}
         onDelete={(row) => removeItem(row.id)}
-        emptyTitle="Belum ada order"
-        emptyDescription="Order penjualan yang kamu buat akan muncul di sini."
+        emptyTitle={filtersActive ? "Tidak ada order yang cocok" : "Belum ada order"}
+        emptyDescription={filtersActive ? "Coba ubah atau reset filter kamu." : "Order penjualan yang kamu buat akan muncul di sini."}
       />
       <AddSalesOrderDialog open={open} onOpenChange={setOpen} editingOrder={editingOrder} />
       <ImportOrdersDialog open={importOpen} onOpenChange={setImportOpen} />

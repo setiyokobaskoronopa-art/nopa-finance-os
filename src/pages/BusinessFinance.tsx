@@ -4,13 +4,17 @@ import { PageHeader } from "@/components/shared/PageHeader";
 import { EntityFormDialog, type FieldConfig } from "@/components/shared/EntityFormDialog";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { MutationsTable } from "@/components/dashboard/MutationsTable";
+import { TableFilterBar, FILTER_ALL } from "@/components/shared/TableFilterBar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { formatCurrency, formatDateSlash } from "@/utils/format";
+import { formatCurrency, formatDateSlash, parseDateSlash } from "@/utils/format";
+import { sortByTanggalDesc } from "@/utils/sortByDate";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 import { computeLabaBersihBisnis, computeHppTerbayar } from "@/utils/businessCalc";
 import type { KpiDatum } from "@/types/finance";
+
+const KATEGORI_OPTIONS = ["Ads", "Biaya Lainnya", "Prive", "Bayar HPP", "Return"];
 
 const fields: FieldConfig[] = [
   { key: "tanggal", label: "Tanggal", type: "date", defaultValue: formatDateSlash(new Date()) },
@@ -27,6 +31,43 @@ export default function BusinessFinance() {
   const removeMutation = useBusinessMutationsStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [kategoriFilter, setKategoriFilter] = useState(FILTER_ALL);
+
+  const filtersActive = Boolean(search) || Boolean(dateFrom) || Boolean(dateTo) || kategoriFilter !== FILTER_ALL;
+  const resetFilters = () => {
+    setSearch("");
+    setDateFrom("");
+    setDateTo("");
+    setKategoriFilter(FILTER_ALL);
+  };
+
+  const filteredMutations = useMemo(() => {
+    let result = mutations;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((m) => m.keterangan.toLowerCase().includes(q));
+    }
+    if (dateFrom) {
+      const from = parseDateSlash(dateFrom);
+      result = result.filter((m) => {
+        const d = parseDateSlash(m.tanggal);
+        return d && from && d.getTime() >= from.getTime();
+      });
+    }
+    if (dateTo) {
+      const to = parseDateSlash(dateTo);
+      result = result.filter((m) => {
+        const d = parseDateSlash(m.tanggal);
+        return d && to && d.getTime() <= to.getTime();
+      });
+    }
+    if (kategoriFilter !== FILTER_ALL) result = result.filter((m) => m.kategori === kategoriFilter);
+    return sortByTanggalDesc(result);
+  }, [mutations, search, dateFrom, dateTo, kategoriFilter]);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const omzet = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
@@ -89,11 +130,25 @@ export default function BusinessFinance() {
       <div className="mt-6">
         <Card>
           <CardHeader>
-            <CardTitle>Mutasi Bisnis</CardTitle>
+            <CardTitle>Mutasi Bisnis {filtersActive && `(${filteredMutations.length} hasil filter)`}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            <div className="px-5 pt-5">
+              <TableFilterBar
+                searchValue={search}
+                onSearchChange={setSearch}
+                searchPlaceholder="Cari keterangan..."
+                dateFrom={dateFrom}
+                dateTo={dateTo}
+                onDateFromChange={setDateFrom}
+                onDateToChange={setDateTo}
+                selects={[{ key: "kategori", label: "Keperluan", value: kategoriFilter, options: KATEGORI_OPTIONS, onChange: setKategoriFilter }]}
+                onReset={resetFilters}
+                active={filtersActive}
+              />
+            </div>
             <MutationsTable
-              rows={mutations}
+              rows={filteredMutations}
               onDelete={removeMutation}
               onEdit={(row) => {
                 setEditingId(row.id);
