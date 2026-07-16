@@ -32,8 +32,10 @@ const columns: TableColumn<BudgetRow>[] = [
 export default function BudgetPage() {
   const rows = useBudgetStore((s) => s.items);
   const addItem = useBudgetStore((s) => s.addItem);
+  const updateItem = useBudgetStore((s) => s.updateItem);
   const removeItem = useBudgetStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalAlokasi = rows.reduce((s, r) => s + r.alokasi, 0);
@@ -47,6 +49,24 @@ export default function BudgetPage() {
     ];
   }, [rows]);
 
+  const editingRow = rows.find((r) => r.id === editingId) ?? null;
+  const initialValues = editingRow
+    ? {
+        kategori: editingRow.kategori,
+        alokasi: String(editingRow.alokasi),
+        terpakai: String(editingRow.terpakai),
+      }
+    : null;
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setOpen(true);
+  };
+  const handleOpenEdit = (row: BudgetRow) => {
+    setEditingId(row.id);
+    setOpen(true);
+  };
+
   return (
     <>
       <FinancePageTemplate
@@ -57,7 +77,8 @@ export default function BudgetPage() {
         columns={columns}
         rows={rows}
         addLabel="Buat Budget"
-        onAdd={() => setOpen(true)}
+        onAdd={handleOpenAdd}
+        onEdit={handleOpenEdit}
         onDelete={(row) => removeItem(row.id)}
         emptyTitle="Belum ada budget"
         emptyDescription="Buat alokasi budget per kategori untuk mulai memantau pengeluaran."
@@ -65,14 +86,17 @@ export default function BudgetPage() {
       <EntityFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Buat Budget"
-        description="Tentukan alokasi budget untuk kategori tertentu."
+        title={editingId ? "Edit Budget" : "Buat Budget"}
+        description={editingId ? "Perbarui alokasi budget." : "Tentukan alokasi budget untuk kategori tertentu."}
         fields={fields}
-        submitLabel="Simpan Budget"
+        submitLabel={editingId ? "Simpan Perubahan" : "Simpan Budget"}
+        initialValues={initialValues}
         onSubmit={(v) => {
           const alokasi = Number(v.alokasi.replace(/[^0-9]/g, "")) || 0;
           const terpakai = Number(v.terpakai.replace(/[^0-9]/g, "")) || 0;
-          addItem({ kategori: v.kategori, alokasi, terpakai, sisa: Math.max(0, alokasi - terpakai) });
+          const payload = { kategori: v.kategori, alokasi, terpakai, sisa: Math.max(0, alokasi - terpakai) };
+          if (editingId) updateItem(editingId, payload);
+          else addItem(payload);
         }}
       />
     </>

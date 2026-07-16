@@ -15,6 +15,7 @@ interface GoalsState {
   loading: boolean;
   fetchGoals: () => Promise<void>;
   addGoal: (goal: Omit<Goal, "id" | "autoLinked">) => Promise<void>;
+  updateGoal: (id: string, patch: { name?: string; targetDate?: string; target?: number }) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   addToGoal: (id: string, amount: number) => Promise<void>;
 }
@@ -94,6 +95,31 @@ export const useGoalsStore = create<GoalsState>()((set, get) => ({
       return;
     }
     set((state) => ({ goals: [...state.goals, fromRow(data)] }));
+  },
+
+  updateGoal: async (id, patch) => {
+    const prev = get().goals;
+    set({
+      goals: prev.map((g) =>
+        g.id === id
+          ? {
+              ...g,
+              ...(patch.name !== undefined ? { name: patch.name } : {}),
+              ...(patch.targetDate !== undefined ? { targetDate: patch.targetDate } : {}),
+              ...(patch.target !== undefined ? { target: patch.target } : {}),
+            }
+          : g
+      ),
+    });
+    const row: Record<string, unknown> = {};
+    if (patch.name !== undefined) row.name = patch.name;
+    if (patch.targetDate !== undefined) row.target_date = patch.targetDate;
+    if (patch.target !== undefined) row.target = patch.target;
+    const { error } = await supabase.from("goals").update(row).eq("id", id);
+    if (error) {
+      console.error("[goals] update error:", error.message);
+      set({ goals: prev });
+    }
   },
 
   deleteGoal: async (id) => {

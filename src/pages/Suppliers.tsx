@@ -31,8 +31,10 @@ const columns: TableColumn<SupplierItem>[] = [
 export default function Suppliers() {
   const suppliers = useSuppliersStore((s) => s.items);
   const addItem = useSuppliersStore((s) => s.addItem);
+  const updateItem = useSuppliersStore((s) => s.updateItem);
   const removeItem = useSuppliersStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const active = suppliers.filter((s) => s.status === "Aktif").length;
@@ -45,6 +47,26 @@ export default function Suppliers() {
     ];
   }, [suppliers]);
 
+  const editingRow = suppliers.find((s) => s.id === editingId) ?? null;
+  const initialValues = editingRow
+    ? {
+        nama: editingRow.nama,
+        produk: editingRow.produk,
+        kontak: editingRow.kontak,
+        totalPembelian: String(editingRow.totalPembelian),
+        status: editingRow.status,
+      }
+    : null;
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setOpen(true);
+  };
+  const handleOpenEdit = (row: SupplierItem) => {
+    setEditingId(row.id);
+    setOpen(true);
+  };
+
   return (
     <>
       <FinancePageTemplate
@@ -55,7 +77,8 @@ export default function Suppliers() {
         columns={columns}
         rows={suppliers}
         addLabel="Tambah Supplier"
-        onAdd={() => setOpen(true)}
+        onAdd={handleOpenAdd}
+        onEdit={handleOpenEdit}
         onDelete={(row) => removeItem(row.id)}
         emptyTitle="Belum ada supplier"
         emptyDescription="Tambahkan supplier untuk mulai melacak pembelian bahan baku."
@@ -63,13 +86,16 @@ export default function Suppliers() {
       <EntityFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Tambah Supplier"
-        description="Tambahkan data supplier baru."
+        title={editingId ? "Edit Supplier" : "Tambah Supplier"}
+        description={editingId ? "Perbarui data supplier." : "Tambahkan data supplier baru."}
         fields={fields}
-        submitLabel="Simpan Supplier"
+        submitLabel={editingId ? "Simpan Perubahan" : "Simpan Supplier"}
+        initialValues={initialValues}
         onSubmit={(v) => {
           const totalPembelian = Number(v.totalPembelian.replace(/[^0-9]/g, "")) || 0;
-          addItem({ nama: v.nama, produk: v.produk, kontak: v.kontak, totalPembelian, status: v.status });
+          const payload = { nama: v.nama, produk: v.produk, kontak: v.kontak, totalPembelian, status: v.status };
+          if (editingId) updateItem(editingId, payload);
+          else addItem(payload);
         }}
       />
     </>

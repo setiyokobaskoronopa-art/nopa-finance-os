@@ -1,4 +1,4 @@
-import { Trash2, Receipt } from "lucide-react";
+import { Trash2, Pencil, Receipt } from "lucide-react";
 import { formatCurrency } from "@/utils/format";
 import { EmptyState } from "@/components/shared/EmptyState";
 import type { BusinessMutation } from "@/store/businessMutationsStore";
@@ -8,9 +8,11 @@ const CATEGORIES = ["Ads", "Biaya Lainnya", "Prive", "Return"] as const;
 export function MutationsTable({
   rows,
   onDelete,
+  onEdit,
 }: {
   rows: BusinessMutation[];
   onDelete: (id: string) => void;
+  onEdit: (row: BusinessMutation) => void;
 }) {
   if (rows.length === 0) {
     return (
@@ -61,13 +63,22 @@ export function MutationsTable({
               ))}
               <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{r.keterangan || "-"}</td>
               <td className="px-5 py-3.5 text-right">
-                <button
-                  onClick={() => onDelete(r.id)}
-                  className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
-                  aria-label="Hapus mutasi"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="flex items-center justify-end gap-1">
+                  <button
+                    onClick={() => onEdit(r)}
+                    className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-primary-50 hover:text-primary-600 group-hover:opacity-100 dark:hover:bg-primary-500/10"
+                    aria-label="Edit mutasi"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => onDelete(r.id)}
+                    className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
+                    aria-label="Hapus mutasi"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

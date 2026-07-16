@@ -22,8 +22,10 @@ export default function BusinessFinance() {
   const orders = useSalesStore((s) => s.items);
   const mutations = useBusinessMutationsStore((s) => s.items);
   const addMutation = useBusinessMutationsStore((s) => s.addItem);
+  const updateMutation = useBusinessMutationsStore((s) => s.updateItem);
   const removeMutation = useBusinessMutationsStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const omzet = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
@@ -52,7 +54,13 @@ export default function BusinessFinance() {
         title="Keuangan Bisnis"
         description="Ringkasan keuangan bisnis, dihitung otomatis dari data Penjualan."
         action={
-          <Button size="sm" onClick={() => setOpen(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingId(null);
+              setOpen(true);
+            }}
+          >
             <Plus size={15} /> Tambah Mutasi
           </Button>
         }
@@ -76,7 +84,14 @@ export default function BusinessFinance() {
             <CardTitle>Mutasi Bisnis</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <MutationsTable rows={mutations} onDelete={removeMutation} />
+            <MutationsTable
+              rows={mutations}
+              onDelete={removeMutation}
+              onEdit={(row) => {
+                setEditingId(row.id);
+                setOpen(true);
+              }}
+            />
           </CardContent>
         </Card>
       </div>
@@ -84,18 +99,34 @@ export default function BusinessFinance() {
       <EntityFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Tambah Mutasi"
-        description="Catat pengeluaran Ads, biaya lainnya, prive, atau return."
+        title={editingId ? "Edit Mutasi" : "Tambah Mutasi"}
+        description={
+          editingId
+            ? "Perbarui data mutasi bisnis."
+            : "Catat pengeluaran Ads, biaya lainnya, prive, atau return."
+        }
         fields={fields}
-        submitLabel="Simpan Mutasi"
+        submitLabel={editingId ? "Simpan Perubahan" : "Simpan Mutasi"}
+        initialValues={
+          editingId
+            ? (() => {
+                const row = mutations.find((m) => m.id === editingId);
+                return row ? { kategori: row.kategori, jumlah: String(row.jumlah), keterangan: row.keterangan } : null;
+              })()
+            : null
+        }
         onSubmit={(v) => {
           const jumlah = Number(v.jumlah.replace(/[^0-9]/g, "")) || 0;
-          addMutation({
-            tanggal: formatDateSlash(new Date()),
-            kategori: v.kategori,
-            jumlah,
-            keterangan: v.keterangan || "",
-          });
+          if (editingId) {
+            updateMutation(editingId, { kategori: v.kategori, jumlah, keterangan: v.keterangan || "" });
+          } else {
+            addMutation({
+              tanggal: formatDateSlash(new Date()),
+              kategori: v.kategori,
+              jumlah,
+              keterangan: v.keterangan || "",
+            });
+          }
         }}
       />
     </div>

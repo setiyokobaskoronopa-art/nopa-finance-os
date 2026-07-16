@@ -1,15 +1,20 @@
-import { Landmark, Plus, X } from "lucide-react";
+import { useState } from "react";
+import { Landmark, Plus, X, Pencil } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/Button";
+import { AddAccountDialog } from "@/components/dashboard/AddAccountDialog";
 import { formatCurrency } from "@/utils/format";
 import { useAccountsStore } from "@/store/accountsStore";
 import { useUIStore } from "@/store/uiStore";
+import type { BankAccount } from "@/types/finance";
 
 export function BankBalanceCard() {
   const accounts = useAccountsStore((s) => s.accounts);
   const deleteAccount = useAccountsStore((s) => s.deleteAccount);
   const openAccountDialog = useUIStore((s) => s.openAccountDialog);
+  const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <Card>
@@ -38,13 +43,25 @@ export function BankBalanceCard() {
               className="group relative overflow-hidden rounded-2xl p-4 text-white shadow-soft transition-transform duration-200 hover:-translate-y-0.5"
               style={{ background: `linear-gradient(135deg, ${acc.color}, ${acc.color}CC)` }}
             >
-              <button
-                onClick={() => deleteAccount(acc.id)}
-                className="absolute right-2 top-2 rounded-lg bg-white/10 p-1 opacity-0 backdrop-blur transition-opacity hover:bg-white/25 group-hover:opacity-100"
-                aria-label="Hapus rekening"
-              >
-                <X size={13} />
-              </button>
+              <div className="absolute right-2 top-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                <button
+                  onClick={() => {
+                    setEditingAccount(acc);
+                    setEditOpen(true);
+                  }}
+                  className="rounded-lg bg-white/10 p-1 backdrop-blur transition-colors hover:bg-white/25"
+                  aria-label="Edit rekening"
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  onClick={() => deleteAccount(acc.id)}
+                  className="rounded-lg bg-white/10 p-1 backdrop-blur transition-colors hover:bg-white/25"
+                  aria-label="Hapus rekening"
+                >
+                  <X size={13} />
+                </button>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-sm font-bold backdrop-blur">
                   {acc.logoInitial}
@@ -57,6 +74,7 @@ export function BankBalanceCard() {
           ))
         )}
       </CardContent>
+      <AddAccountDialog open={editOpen} onOpenChange={setEditOpen} editingAccount={editingAccount} />
     </Card>
   );
 }

@@ -19,6 +19,7 @@ const fields: FieldConfig[] = [
 export default function PersonalFinance() {
   const manualRows = usePersonalTxStore((s) => s.items);
   const addItem = usePersonalTxStore((s) => s.addItem);
+  const updateItem = usePersonalTxStore((s) => s.updateItem);
   const removeItem = usePersonalTxStore((s) => s.removeItem);
   const businessMutations = useBusinessMutationsStore((s) => s.items);
   const priveMutations = useMemo(
@@ -26,6 +27,7 @@ export default function PersonalFinance() {
     [businessMutations]
   );
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const priveRows = useMemo<PersonalTx[]>(
     () =>
@@ -62,6 +64,26 @@ export default function PersonalFinance() {
     { key: "jumlah", header: "Jumlah", align: "right", render: (r) => formatCurrency(r.jumlah) },
   ];
 
+  const editingRow = manualRows.find((r) => r.id === editingId) ?? null;
+  const initialValues = editingRow
+    ? {
+        keterangan: editingRow.keterangan,
+        kategori: editingRow.kategori,
+        jumlah: String(editingRow.jumlah),
+        jenis: editingRow.jenis,
+      }
+    : null;
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setOpen(true);
+  };
+  const handleOpenEdit = (row: PersonalTx) => {
+    if (row.id.startsWith("prive-")) return;
+    setEditingId(row.id);
+    setOpen(true);
+  };
+
   return (
     <>
       <div className="mb-4 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
@@ -76,7 +98,9 @@ export default function PersonalFinance() {
         columns={columns}
         rows={rows}
         addLabel="Catat Transaksi"
-        onAdd={() => setOpen(true)}
+        onAdd={handleOpenAdd}
+        onEdit={handleOpenEdit}
+        canEdit={(row) => !row.id.startsWith("prive-")}
         onDelete={(row) => removeItem(row.id)}
         canDelete={(row) => !row.id.startsWith("prive-")}
         emptyTitle="Belum ada transaksi pribadi"
@@ -85,13 +109,18 @@ export default function PersonalFinance() {
       <EntityFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Catat Transaksi Pribadi"
-        description="Tambahkan transaksi keuangan pribadi baru."
+        title={editingId ? "Edit Transaksi" : "Catat Transaksi Pribadi"}
+        description={editingId ? "Perbarui transaksi pribadi." : "Tambahkan transaksi keuangan pribadi baru."}
         fields={fields}
-        submitLabel="Simpan Transaksi"
+        submitLabel={editingId ? "Simpan Perubahan" : "Simpan Transaksi"}
+        initialValues={initialValues}
         onSubmit={(v) => {
           const jumlah = Number(v.jumlah.replace(/[^0-9]/g, "")) || 0;
-          addItem({ tanggal: formatDateSlash(new Date()), keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
+          if (editingId) {
+            updateItem(editingId, { keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
+          } else {
+            addItem({ tanggal: formatDateSlash(new Date()), keterangan: v.keterangan, kategori: v.kategori, jumlah, jenis: v.jenis });
+          }
         }}
       />
     </>

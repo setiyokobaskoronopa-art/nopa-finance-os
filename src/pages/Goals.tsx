@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, PiggyBank, Target as TargetIcon, Link2 } from "lucide-react";
+import { Plus, Trash2, Pencil, PiggyBank, Target as TargetIcon, Link2 } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Progress } from "@/components/ui/Progress";
 import { AddGoalDialog } from "@/components/dashboard/AddGoalDialog";
-import { useGoalsStore } from "@/store/goalsStore";
+import { useGoalsStore, type Goal } from "@/store/goalsStore";
 import { useSalesStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 import { computeLabaBersihBisnis } from "@/utils/businessCalc";
@@ -21,6 +21,7 @@ export default function Goals() {
   const mutations = useBusinessMutationsStore((s) => s.items);
   const labaBersih = computeLabaBersihBisnis(orders, mutations);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [contributions, setContributions] = useState<Record<string, string>>({});
 
   const handleContribute = (id: string) => {
@@ -37,7 +38,13 @@ export default function Goals() {
         title="Target"
         description="Pantau dan kelola progres target finansial Anda."
         action={
-          <Button size="sm" onClick={() => setDialogOpen(true)}>
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditingGoal(null);
+              setDialogOpen(true);
+            }}
+          >
             <Plus size={15} /> Set Target Baru
           </Button>
         }
@@ -51,7 +58,13 @@ export default function Goals() {
               title="Belum ada target"
               description="Buat target tabungan pertama Anda untuk mulai memantau progres."
               action={
-                <Button size="sm" onClick={() => setDialogOpen(true)}>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingGoal(null);
+                    setDialogOpen(true);
+                  }}
+                >
                   <Plus size={14} /> Set Target Baru
                 </Button>
               }
@@ -67,15 +80,27 @@ export default function Goals() {
             return (
               <Card key={g.id} className="group relative">
                 <CardContent className="pt-5">
-                  {!isAutoLinked && (
+                  <div className="absolute right-4 top-4 flex items-center gap-1 opacity-0 transition-all group-hover:opacity-100">
                     <button
-                      onClick={() => deleteGoal(g.id)}
-                      className="absolute right-4 top-4 rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
-                      aria-label="Hapus target"
+                      onClick={() => {
+                        setEditingGoal(g);
+                        setDialogOpen(true);
+                      }}
+                      className="rounded-lg p-1.5 text-secondary-300 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-500/10"
+                      aria-label="Edit target"
                     >
-                      <Trash2 size={15} />
+                      <Pencil size={15} />
                     </button>
-                  )}
+                    {!isAutoLinked && (
+                      <button
+                        onClick={() => deleteGoal(g.id)}
+                        className="rounded-lg p-1.5 text-secondary-300 hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/10"
+                        aria-label="Hapus target"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
                   <div className="flex items-center gap-3">
                     <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-warning-50 text-warning-600 dark:bg-warning-500/10">
                       <PiggyBank size={20} />
@@ -121,7 +146,7 @@ export default function Goals() {
         </div>
       )}
 
-      <AddGoalDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddGoalDialog open={dialogOpen} onOpenChange={setDialogOpen} editingGoal={editingGoal} />
     </div>
   );
 }

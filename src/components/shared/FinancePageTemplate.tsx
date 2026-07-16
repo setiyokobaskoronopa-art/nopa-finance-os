@@ -20,6 +20,8 @@ interface FinancePageTemplateProps<T extends GenericRow> {
   onAdd?: () => void;
   onDelete?: (row: T) => void;
   canDelete?: (row: T) => boolean;
+  onEdit?: (row: T) => void;
+  canEdit?: (row: T) => boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }
@@ -37,6 +39,8 @@ export function FinancePageTemplate<T extends GenericRow>({
   onAdd,
   onDelete,
   canDelete,
+  onEdit,
+  canEdit,
   emptyTitle,
   emptyDescription,
 }: FinancePageTemplateProps<T>) {
@@ -85,6 +89,8 @@ export function FinancePageTemplate<T extends GenericRow>({
               rows={rows}
               onDelete={onDelete}
               canDelete={canDelete}
+              onEdit={onEdit}
+              canEdit={canEdit}
               emptyTitle={emptyTitle}
               emptyDescription={emptyDescription}
             />

@@ -22,6 +22,7 @@ export default function Accounts() {
   const deleteAccount = useAccountsStore((s) => s.deleteAccount);
   const transactions = useTransactionsStore((s) => s.transactions);
   const [open, setOpen] = useState(false);
+  const [editingAccount, setEditingAccount] = useState<BankAccount | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalSaldo = accounts.reduce((s, a) => s + a.balance, 0);
@@ -44,12 +45,19 @@ export default function Accounts() {
         columns={columns}
         rows={accounts as AccountRow[]}
         addLabel="Tambah Rekening"
-        onAdd={() => setOpen(true)}
+        onAdd={() => {
+          setEditingAccount(null);
+          setOpen(true);
+        }}
+        onEdit={(row) => {
+          setEditingAccount(row);
+          setOpen(true);
+        }}
         onDelete={(row) => deleteAccount(row.id)}
         emptyTitle="Belum ada rekening"
         emptyDescription="Tambahkan rekening bank untuk mulai memantau saldo."
       />
-      <AddAccountDialog open={open} onOpenChange={setOpen} />
+      <AddAccountDialog open={open} onOpenChange={setOpen} editingAccount={editingAccount} />
     </>
   );
 }

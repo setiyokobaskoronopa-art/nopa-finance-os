@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Pencil } from "lucide-react";
 import type { GenericRow, TableColumn } from "@/types/finance";
 import { cn } from "@/utils/cn";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -9,6 +9,8 @@ export function DataTable<T extends GenericRow>({
   rows,
   onDelete,
   canDelete,
+  onEdit,
+  canEdit,
   emptyTitle = "Belum ada data",
   emptyDescription = "Data akan muncul di sini setelah Anda menambahkannya.",
 }: {
@@ -16,6 +18,8 @@ export function DataTable<T extends GenericRow>({
   rows: T[];
   onDelete?: (row: T) => void;
   canDelete?: (row: T) => boolean;
+  onEdit?: (row: T) => void;
+  canEdit?: (row: T) => boolean;
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
@@ -40,7 +44,7 @@ export function DataTable<T extends GenericRow>({
                 {col.header}
               </th>
             ))}
-            {onDelete && <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-secondary-400">Aksi</th>}
+            {(onDelete || onEdit) && <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-secondary-400">Aksi</th>}
           </tr>
         </thead>
         <tbody>
@@ -61,17 +65,28 @@ export function DataTable<T extends GenericRow>({
                   {col.render ? col.render(row) : (row[col.key as string] as ReactNode)}
                 </td>
               ))}
-              {onDelete && (
+              {(onDelete || onEdit) && (
                 <td className="px-5 py-3.5 text-right">
-                  {(!canDelete || canDelete(row)) && (
-                    <button
-                      onClick={() => onDelete(row)}
-                      className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
-                      aria-label="Hapus"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
+                  <div className="flex items-center justify-end gap-1">
+                    {onEdit && (!canEdit || canEdit(row)) && (
+                      <button
+                        onClick={() => onEdit(row)}
+                        className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-primary-50 hover:text-primary-600 group-hover:opacity-100 dark:hover:bg-primary-500/10"
+                        aria-label="Edit"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {onDelete && (!canDelete || canDelete(row)) && (
+                      <button
+                        onClick={() => onDelete(row)}
+                        className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
+                        aria-label="Hapus"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
                 </td>
               )}
             </tr>

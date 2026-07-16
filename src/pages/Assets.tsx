@@ -24,8 +24,10 @@ const columns: TableColumn<AssetRow>[] = [
 export default function Assets() {
   const rows = useAssetsStore((s) => s.items);
   const addItem = useAssetsStore((s) => s.addItem);
+  const updateItem = useAssetsStore((s) => s.updateItem);
   const removeItem = useAssetsStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const total = rows.reduce((s, r) => s + r.nilai, 0);
@@ -38,6 +40,25 @@ export default function Assets() {
     ];
   }, [rows]);
 
+  const editingRow = rows.find((r) => r.id === editingId) ?? null;
+  const initialValues = editingRow
+    ? {
+        nama: editingRow.nama,
+        kategori: editingRow.kategori,
+        nilai: String(editingRow.nilai),
+        kondisi: editingRow.kondisi,
+      }
+    : null;
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setOpen(true);
+  };
+  const handleOpenEdit = (row: AssetRow) => {
+    setEditingId(row.id);
+    setOpen(true);
+  };
+
   return (
     <>
       <FinancePageTemplate
@@ -48,7 +69,8 @@ export default function Assets() {
         columns={columns}
         rows={rows}
         addLabel="Tambah Aset"
-        onAdd={() => setOpen(true)}
+        onAdd={handleOpenAdd}
+        onEdit={handleOpenEdit}
         onDelete={(row) => removeItem(row.id)}
         emptyTitle="Belum ada aset"
         emptyDescription="Tambahkan aset untuk mulai memantau kekayaan Anda."
@@ -56,13 +78,16 @@ export default function Assets() {
       <EntityFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Tambah Aset"
-        description="Tambahkan aset baru ke daftar kekayaan Anda."
+        title={editingId ? "Edit Aset" : "Tambah Aset"}
+        description={editingId ? "Perbarui data aset." : "Tambahkan aset baru ke daftar kekayaan Anda."}
         fields={fields}
-        submitLabel="Simpan Aset"
+        submitLabel={editingId ? "Simpan Perubahan" : "Simpan Aset"}
+        initialValues={initialValues}
         onSubmit={(v) => {
           const nilai = Number(v.nilai.replace(/[^0-9]/g, "")) || 0;
-          addItem({ nama: v.nama, kategori: v.kategori, nilai, kondisi: v.kondisi });
+          const payload = { nama: v.nama, kategori: v.kategori, nilai, kondisi: v.kondisi };
+          if (editingId) updateItem(editingId, payload);
+          else addItem(payload);
         }}
       />
     </>

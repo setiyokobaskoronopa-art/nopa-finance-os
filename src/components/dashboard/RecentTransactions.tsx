@@ -1,10 +1,13 @@
-import { ArrowDownLeft, ArrowUpRight, Receipt, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { ArrowDownLeft, ArrowUpRight, Receipt, Trash2, Pencil } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { AddTransactionDialog } from "@/components/dashboard/AddTransactionDialog";
 import { cn } from "@/utils/cn";
 import { formatCurrency } from "@/utils/format";
 import { useTransactionsStore } from "@/store/transactionsStore";
+import type { TransactionItem } from "@/types/finance";
 
 const statusVariant = {
   success: "success",
@@ -21,6 +24,8 @@ const statusLabel = {
 export function RecentTransactions() {
   const transactions = useTransactionsStore((s) => s.transactions);
   const deleteTransaction = useTransactionsStore((s) => s.deleteTransaction);
+  const [editingTransaction, setEditingTransaction] = useState<TransactionItem | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   return (
     <Card>
@@ -72,18 +77,31 @@ export function RecentTransactions() {
                     </Badge>
                   </div>
                 </div>
-                <button
-                  onClick={() => deleteTransaction(tx.id)}
-                  className="ml-1 shrink-0 rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
-                  aria-label="Hapus transaksi"
-                >
-                  <Trash2 size={15} />
-                </button>
+                <div className="ml-1 flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+                  <button
+                    onClick={() => {
+                      setEditingTransaction(tx);
+                      setEditOpen(true);
+                    }}
+                    className="rounded-lg p-1.5 text-secondary-300 hover:bg-primary-50 hover:text-primary-600 dark:hover:bg-primary-500/10"
+                    aria-label="Edit transaksi"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => deleteTransaction(tx.id)}
+                    className="rounded-lg p-1.5 text-secondary-300 hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-500/10"
+                    aria-label="Hapus transaksi"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </CardContent>
+      <AddTransactionDialog open={editOpen} onOpenChange={setEditOpen} editingTransaction={editingTransaction} />
     </Card>
   );
 }

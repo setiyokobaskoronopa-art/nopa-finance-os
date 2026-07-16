@@ -11,8 +11,9 @@ import {
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
-import { useTransactionsStore } from "@/store/transactionsStore";
+import { useTransactionsStoreBase } from "@/store/transactionsStore";
 import { formatDateShort } from "@/utils/format";
+import type { TransactionItem } from "@/types/finance";
 
 const categories = [
   "Penjualan",
@@ -33,10 +34,18 @@ interface AddTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultType?: "income" | "expense";
+  editingTransaction?: TransactionItem | null;
 }
 
-export function AddTransactionDialog({ open, onOpenChange, defaultType = "income" }: AddTransactionDialogProps) {
-  const addTransaction = useTransactionsStore((s) => s.addTransaction);
+export function AddTransactionDialog({
+  open,
+  onOpenChange,
+  defaultType = "income",
+  editingTransaction,
+}: AddTransactionDialogProps) {
+  const addItem = useTransactionsStoreBase((s) => s.addItem);
+  const updateItem = useTransactionsStoreBase((s) => s.updateItem);
+  const isEditing = Boolean(editingTransaction);
 
   const [name, setName] = useState("");
   const [category, setCategory] = useState(categories[0]);
@@ -45,8 +54,18 @@ export function AddTransactionDialog({ open, onOpenChange, defaultType = "income
   const [type, setType] = useState<"income" | "expense">(defaultType);
 
   useEffect(() => {
-    if (open) setType(defaultType);
-  }, [open, defaultType]);
+    if (!open) return;
+    if (editingTransaction) {
+      setName(editingTransaction.name);
+      setCategory(editingTransaction.category);
+      setMethod(editingTransaction.method);
+      setAmount(String(editingTransaction.amount));
+      setType(editingTransaction.type);
+    } else {
+      setType(defaultType);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultType, editingTransaction]);
 
   const reset = () => {
     setName("");
@@ -60,16 +79,26 @@ export function AddTransactionDialog({ open, onOpenChange, defaultType = "income
     const numericAmount = Number(amount.replace(/[^0-9]/g, ""));
     if (!name.trim() || !numericAmount) return;
 
-    addTransaction({
-      name: name.trim(),
-      category,
-      date: formatDateShort(new Date()),
-      amount: numericAmount,
-      type,
-      status: "success",
-      method,
-      avatarColor: avatarColors[Math.floor(Math.random() * avatarColors.length)],
-    });
+    if (isEditing && editingTransaction) {
+      updateItem(editingTransaction.id, {
+        name: name.trim(),
+        category,
+        amount: numericAmount,
+        type,
+        method,
+      });
+    } else {
+      addItem({
+        name: name.trim(),
+        category,
+        date: formatDateShort(new Date()),
+        amount: numericAmount,
+        type,
+        status: "success",
+        method,
+        avatarColor: avatarColors[Math.floor(Math.random() * avatarColors.length)],
+      });
+    }
 
     reset();
     onOpenChange(false);
@@ -85,8 +114,10 @@ export function AddTransactionDialog({ open, onOpenChange, defaultType = "income
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Catat Transaksi Baru</DialogTitle>
-          <DialogDescription>Tambahkan pemasukan atau pengeluaran baru ke dashboard Anda.</DialogDescription>
+          <DialogTitle>{isEditing ? "Edit Transaksi" : "Catat Transaksi Baru"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Perbarui detail transaksi ini." : "Tambahkan pemasukan atau pengeluaran baru ke dashboard Anda."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -172,7 +203,7 @@ export function AddTransactionDialog({ open, onOpenChange, defaultType = "income
           <DialogClose asChild>
             <Button variant="outline">Batal</Button>
           </DialogClose>
-          <Button onClick={handleSubmit}>Simpan Transaksi</Button>
+          <Button onClick={handleSubmit}>{isEditing ? "Simpan Perubahan" : "Simpan Transaksi"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

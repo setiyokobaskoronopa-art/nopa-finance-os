@@ -30,6 +30,7 @@ interface EntityFormDialogProps {
   fields: FieldConfig[];
   submitLabel?: string;
   onSubmit: (values: Record<string, string>) => void;
+  initialValues?: Record<string, string> | null;
 }
 
 export function EntityFormDialog({
@@ -40,16 +41,17 @@ export function EntityFormDialog({
   fields,
   submitLabel = "Simpan",
   onSubmit,
+  initialValues,
 }: EntityFormDialogProps) {
   const buildInitial = () =>
-    Object.fromEntries(fields.map((f) => [f.key, f.defaultValue ?? (f.options ? f.options[0] : "")]));
+    initialValues ?? Object.fromEntries(fields.map((f) => [f.key, f.defaultValue ?? (f.options ? f.options[0] : "")]));
 
   const [values, setValues] = useState<Record<string, string>>(buildInitial);
 
   useEffect(() => {
     if (open) setValues(buildInitial());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, initialValues]);
 
   const handleSubmit = () => {
     const requiredOk = fields.every((f) => (f.options || f.optional ? true : values[f.key]?.toString().trim()));

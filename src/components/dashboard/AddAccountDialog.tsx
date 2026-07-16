@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,8 @@ import {
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { useAccountsStore } from "@/store/accountsStore";
+import { useAccountsStoreBase } from "@/store/accountsStore";
+import type { BankAccount } from "@/types/finance";
 
 const colorOptions = [
   { color: "#2563EB", label: "Biru" },
@@ -23,10 +24,13 @@ const colorOptions = [
 interface AddAccountDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingAccount?: BankAccount | null;
 }
 
-export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) {
-  const addAccount = useAccountsStore((s) => s.addAccount);
+export function AddAccountDialog({ open, onOpenChange, editingAccount }: AddAccountDialogProps) {
+  const addItem = useAccountsStoreBase((s) => s.addItem);
+  const updateItem = useAccountsStoreBase((s) => s.updateItem);
+  const isEditing = Boolean(editingAccount);
 
   const [bankName, setBankName] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
@@ -42,20 +46,39 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
     setColor(colorOptions[0].color);
   };
 
+  useEffect(() => {
+    if (!open) return;
+    if (editingAccount) {
+      setBankName(editingAccount.bankName);
+      setAccountNumber(editingAccount.accountNumber);
+      setAccountName(editingAccount.accountName);
+      setBalance(String(editingAccount.balance));
+      setColor(editingAccount.color);
+    } else {
+      reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingAccount]);
+
   const handleSubmit = () => {
     if (!bankName.trim() || !accountName.trim()) return;
     const numericBalance = Number(balance.replace(/[^0-9]/g, "")) || 0;
 
-    addAccount({
+    const payload = {
       bankName: bankName.trim(),
       accountNumber: accountNumber.trim() || "••••",
       accountName: accountName.trim(),
       balance: numericBalance,
       color,
       logoInitial: bankName.trim().charAt(0).toUpperCase() || "B",
-    });
+    };
 
-    reset();
+    if (isEditing && editingAccount) {
+      updateItem(editingAccount.id, payload);
+    } else {
+      addItem(payload);
+    }
+
     onOpenChange(false);
   };
 
@@ -69,8 +92,10 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Tambah Rekening</DialogTitle>
-          <DialogDescription>Tambahkan rekening bank baru untuk dipantau saldonya.</DialogDescription>
+          <DialogTitle>{isEditing ? "Edit Rekening" : "Tambah Rekening"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Perbarui data rekening bank." : "Tambahkan rekening bank baru untuk dipantau saldonya."}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -96,7 +121,7 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Saldo Awal (Rp)</label>
+              <label className="mb-1.5 block text-xs font-medium text-secondary-500">Saldo (Rp)</label>
               <Input placeholder="0" inputMode="numeric" value={balance} onChange={(e) => setBalance(e.target.value)} />
             </div>
           </div>
@@ -123,7 +148,7 @@ export function AddAccountDialog({ open, onOpenChange }: AddAccountDialogProps) 
           <DialogClose asChild>
             <Button variant="outline">Batal</Button>
           </DialogClose>
-          <Button onClick={handleSubmit}>Simpan Rekening</Button>
+          <Button onClick={handleSubmit}>{isEditing ? "Simpan Perubahan" : "Simpan Rekening"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

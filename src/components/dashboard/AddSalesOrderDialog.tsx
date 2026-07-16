@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -17,7 +17,7 @@ import { useAuthStore } from "@/store/authStore";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { PRODUCT_PRICING, PRODUCT_NAMES } from "@/data/productPricing";
 import { getAvailableStockReturn } from "@/utils/stockCalc";
-import type { OrderLineItem } from "@/data/pagesDummy";
+import type { OrderLineItem, SalesOrder } from "@/data/pagesDummy";
 
 const COD_FEE_RATE = 0.03; // 3%
 const COD_TAX_RATE = 0.0033; // 0.33% (dihitung dari data aktual laporan kamu)
@@ -41,12 +41,15 @@ function makeDefaultLineItem(): OrderLineItem {
 interface AddSalesOrderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  editingOrder?: SalesOrder | null;
 }
 
-export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogProps) {
+export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSalesOrderDialogProps) {
   const addItem = useSalesStore((s) => s.addItem);
+  const updateItem = useSalesStore((s) => s.updateItem);
   const allOrders = useSalesStore((s) => s.items);
   const profile = useAuthStore((s) => s.profile);
+  const isEditing = Boolean(editingOrder);
 
   const [cs, setCs] = useState(profile.name || "");
   const [namaCustomer, setNamaCustomer] = useState("");
@@ -64,6 +67,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
 
   const totalHpp = lineItems.reduce((s, i) => s + i.hpp, 0);
   const totalHargaJual = lineItems.reduce((s, i) => s + i.hargaJual, 0);
+  const skipNextSyncRef = useRef(false);
 
   const reset = () => {
     setCs(profile.name || "");
@@ -81,11 +85,33 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
   };
 
   useEffect(() => {
-    if (open) reset();
+    if (!open) return;
+    if (editingOrder) {
+      skipNextSyncRef.current = true;
+      setCs(editingOrder.cs);
+      setNamaCustomer(editingOrder.namaCustomer);
+      setNoWa(editingOrder.noWa);
+      setKode(editingOrder.kode);
+      setPlatform(editingOrder.platform);
+      setMetodePembayaran(editingOrder.metodePembayaran);
+      setEkspedis(editingOrder.ekspedis);
+      setLineItems(editingOrder.items && editingOrder.items.length > 0 ? editingOrder.items : [makeDefaultLineItem()]);
+      setHargaTotalProduk(String(editingOrder.hargaTotalProduk));
+      setDiskonOngkir(String(editingOrder.diskonOngkir));
+      setTotalCustomerBayar(String(editingOrder.totalCustomerBayar));
+      setPromo(String(editingOrder.promo));
+      setStatus(editingOrder.status);
+    } else {
+      reset();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, editingOrder]);
 
   useEffect(() => {
+    if (skipNextSyncRef.current) {
+      skipNextSyncRef.current = false;
+      return;
+    }
     setHargaTotalProduk(String(totalHargaJual));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalHargaJual]);
@@ -143,9 +169,8 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
       ? "Campuran"
       : "Baru";
 
-    addItem({
+    const payload = {
       cs: cs.trim() || "Setyo",
-      tanggal: formatDateSlash(new Date()),
       namaCustomer: namaCustomer.trim(),
       noWa: noWa.trim(),
       kode,
@@ -166,8 +191,13 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
       hpp: totalHpp,
       grossProvit: preview.grossProvit,
       status,
-      externalOrderId: null,
-    });
+    };
+
+    if (isEditing && editingOrder) {
+      updateItem(editingOrder.id, payload);
+    } else {
+      addItem({ ...payload, tanggal: formatDateSlash(new Date()), externalOrderId: null });
+    }
 
     onOpenChange(false);
   };
@@ -176,9 +206,11 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto scrollbar-thin">
         <DialogHeader>
-          <DialogTitle>Buat Order Baru</DialogTitle>
+          <DialogTitle>{isEditing ? "Edit Order" : "Buat Order Baru"}</DialogTitle>
           <DialogDescription>
-            Bisa pilih lebih dari satu produk dalam satu order. HPP & harga otomatis terisi per produk.
+            {isEditing
+              ? "Perbarui detail order ini."
+              : "Bisa pilih lebih dari satu produk dalam satu order. HPP & harga otomatis terisi per produk."}
           </DialogDescription>
         </DialogHeader>
 
@@ -427,7 +459,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
           <DialogClose asChild>
             <Button variant="outline">Batal</Button>
           </DialogClose>
-          <Button onClick={handleSubmit}>Simpan Order</Button>
+          <Button onClick={handleSubmit}>{isEditing ? "Simpan Perubahan" : "Simpan Order"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

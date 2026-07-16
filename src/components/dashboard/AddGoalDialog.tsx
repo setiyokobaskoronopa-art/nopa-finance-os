@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,10 +10,19 @@ import {
 } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { useGoalsStore } from "@/store/goalsStore";
+import { useGoalsStore, type Goal } from "@/store/goalsStore";
 
-export function AddGoalDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+interface AddGoalDialogProps {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  editingGoal?: Goal | null;
+}
+
+export function AddGoalDialog({ open, onOpenChange, editingGoal }: AddGoalDialogProps) {
   const addGoal = useGoalsStore((s) => s.addGoal);
+  const updateGoal = useGoalsStore((s) => s.updateGoal);
+  const isEditing = Boolean(editingGoal);
+
   const [name, setName] = useState("");
   const [target, setTarget] = useState("");
   const [targetDate, setTargetDate] = useState("");
@@ -24,11 +33,32 @@ export function AddGoalDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     setTargetDate("");
   };
 
+  useEffect(() => {
+    if (!open) return;
+    if (editingGoal) {
+      setName(editingGoal.name);
+      setTarget(String(editingGoal.target));
+      setTargetDate(editingGoal.targetDate === "Berkelanjutan" ? "" : editingGoal.targetDate);
+    } else {
+      reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editingGoal]);
+
   const handleSubmit = () => {
     const numericTarget = Number(target.replace(/[^0-9]/g, ""));
     if (!name.trim() || !numericTarget) return;
-    addGoal({ name: name.trim(), target: numericTarget, collected: 0, targetDate: targetDate.trim() || "Berkelanjutan" });
-    reset();
+
+    if (isEditing && editingGoal) {
+      updateGoal(editingGoal.id, {
+        name: name.trim(),
+        target: numericTarget,
+        targetDate: targetDate.trim() || "Berkelanjutan",
+      });
+    } else {
+      addGoal({ name: name.trim(), target: numericTarget, collected: 0, targetDate: targetDate.trim() || "Berkelanjutan" });
+    }
+
     onOpenChange(false);
   };
 
@@ -42,8 +72,10 @@ export function AddGoalDialog({ open, onOpenChange }: { open: boolean; onOpenCha
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Set Target Baru</DialogTitle>
-          <DialogDescription>Buat target tabungan baru untuk dipantau progresnya.</DialogDescription>
+          <DialogTitle>{isEditing ? "Edit Target" : "Set Target Baru"}</DialogTitle>
+          <DialogDescription>
+            {isEditing ? "Perbarui detail target tabungan ini." : "Buat target tabungan baru untuk dipantau progresnya."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div>
@@ -63,7 +95,7 @@ export function AddGoalDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           <DialogClose asChild>
             <Button variant="outline">Batal</Button>
           </DialogClose>
-          <Button onClick={handleSubmit}>Simpan Target</Button>
+          <Button onClick={handleSubmit}>{isEditing ? "Simpan Perubahan" : "Simpan Target"}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

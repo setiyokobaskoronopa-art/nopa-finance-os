@@ -24,8 +24,10 @@ const columns: TableColumn<InvestmentRow>[] = [
 export default function Investment() {
   const rows = useInvestmentStore((s) => s.items);
   const addItem = useInvestmentStore((s) => s.addItem);
+  const updateItem = useInvestmentStore((s) => s.updateItem);
   const removeItem = useInvestmentStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const total = rows.reduce((s, r) => s + r.nilai, 0);
@@ -40,6 +42,25 @@ export default function Investment() {
     ];
   }, [rows]);
 
+  const editingRow = rows.find((r) => r.id === editingId) ?? null;
+  const initialValues = editingRow
+    ? {
+        instrumen: editingRow.instrumen,
+        platform: editingRow.platform,
+        nilai: String(editingRow.nilai),
+        imbalHasil: editingRow.imbalHasil,
+      }
+    : null;
+
+  const handleOpenAdd = () => {
+    setEditingId(null);
+    setOpen(true);
+  };
+  const handleOpenEdit = (row: InvestmentRow) => {
+    setEditingId(row.id);
+    setOpen(true);
+  };
+
   return (
     <>
       <FinancePageTemplate
@@ -50,7 +71,8 @@ export default function Investment() {
         columns={columns}
         rows={rows}
         addLabel="Tambah Investasi"
-        onAdd={() => setOpen(true)}
+        onAdd={handleOpenAdd}
+        onEdit={handleOpenEdit}
         onDelete={(row) => removeItem(row.id)}
         emptyTitle="Belum ada investasi"
         emptyDescription="Tambahkan instrumen investasi untuk mulai memantau portofolio."
@@ -58,13 +80,16 @@ export default function Investment() {
       <EntityFormDialog
         open={open}
         onOpenChange={setOpen}
-        title="Tambah Investasi"
-        description="Tambahkan instrumen investasi baru ke portofolio."
+        title={editingId ? "Edit Investasi" : "Tambah Investasi"}
+        description={editingId ? "Perbarui data instrumen investasi." : "Tambahkan instrumen investasi baru ke portofolio."}
         fields={fields}
-        submitLabel="Simpan Investasi"
+        submitLabel={editingId ? "Simpan Perubahan" : "Simpan Investasi"}
+        initialValues={initialValues}
         onSubmit={(v) => {
           const nilai = Number(v.nilai.replace(/[^0-9]/g, "")) || 0;
-          addItem({ instrumen: v.instrumen, platform: v.platform, nilai, imbalHasil: v.imbalHasil });
+          const payload = { instrumen: v.instrumen, platform: v.platform, nilai, imbalHasil: v.imbalHasil };
+          if (editingId) updateItem(editingId, payload);
+          else addItem(payload);
         }}
       />
     </>

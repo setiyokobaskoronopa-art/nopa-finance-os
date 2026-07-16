@@ -104,6 +104,7 @@ export default function Sales() {
   const removeItem = useSalesStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [editingOrder, setEditingOrder] = useState<SalesOrder | null>(null);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalBayar = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
@@ -138,12 +139,19 @@ export default function Sales() {
         columns={columns}
         rows={orders}
         addLabel="Buat Order"
-        onAdd={() => setOpen(true)}
+        onAdd={() => {
+          setEditingOrder(null);
+          setOpen(true);
+        }}
+        onEdit={(row) => {
+          setEditingOrder(row);
+          setOpen(true);
+        }}
         onDelete={(row) => removeItem(row.id)}
         emptyTitle="Belum ada order"
         emptyDescription="Order penjualan yang kamu buat akan muncul di sini."
       />
-      <AddSalesOrderDialog open={open} onOpenChange={setOpen} />
+      <AddSalesOrderDialog open={open} onOpenChange={setOpen} editingOrder={editingOrder} />
       <ImportOrdersDialog open={importOpen} onOpenChange={setImportOpen} />
     </>
   );
