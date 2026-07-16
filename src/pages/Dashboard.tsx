@@ -21,7 +21,7 @@ import { useGoalsStore } from "@/store/goalsStore";
 import { useUIStore } from "@/store/uiStore";
 import { useSalesStore, useInvestmentStore } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
-import { computeLabaBersihBisnis, computeTotalProfit } from "@/utils/businessCalc";
+import { computeLabaBersihBisnis, computeTotalProfit, isInCurrentMonth, getEffectiveGrossProvit } from "@/utils/businessCalc";
 import { formatCurrency } from "@/utils/format";
 import type { KpiDatum } from "@/types/finance";
 
@@ -36,46 +36,68 @@ export default function Dashboard() {
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const { income: manualIncome, expense: manualExpense } = selectTotals(transactions);
-    const manualNet = manualIncome - manualExpense;
-    const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0) + manualNet;
 
-    const salesCashIn = salesOrders.reduce((sum, o) => sum + o.cashIn, 0);
-    const totalMutasi = mutations.reduce((sum, m) => sum + m.jumlah, 0);
-    const labaBersihBisnis = computeLabaBersihBisnis(salesOrders, mutations);
-    const profitBulanan = labaBersihBisnis + manualNet;
+    // --- Data bulan berjalan (di-reset otomatis tiap ganti bulan) ---
+    const ordersThisMonth = salesOrders.filter((o) => isInCurrentMonth(o.tanggal));
+    const mutationsThisMonth = mutations.filter((m) => isInCurrentMonth(m.tanggal));
+    const transactionsThisMonth = transactions.filter((t) => isInCurrentMonth(t.date));
+    const manualIncomeThisMonth = transactionsThisMonth
+      .filter((t) => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
+    const manualExpenseThisMonth = transactionsThisMonth
+      .filter((t) => t.type === "expense")
+      .reduce((sum, t) => sum + t.amount, 0);
 
-    const pemasukan = manualIncome + salesCashIn;
-    const pengeluaran = manualExpense + totalMutasi;
-    const cashFlow = pemasukan - pengeluaran;
+    // Saldo Total: akumulasi SEMUA WAKTU (setiap bulan yang sudah lewat otomatis "nutup buku" dan masuk sini)
+    const manualNetAllTime = manualIncome - manualExpense;
+    const labaBersihBisnisAllTime = computeLabaBersihBisnis(salesOrders, mutations);
+    const saldoTotal = accounts.reduce((sum, a) => sum + a.balance, 0) + manualNetAllTime + labaBersihBisnisAllTime;
 
-    const adsSpend = mutations.filter((m) => m.kategori === "Ads").reduce((sum, m) => sum + m.jumlah, 0);
-    const omzet = salesOrders.reduce((sum, o) => sum + o.totalCustomerBayar, 0);
-    const roas = adsSpend > 0 ? `${(omzet / adsSpend).toFixed(1)}x` : "0x";
+    // Profit Bulanan: cuma bulan berjalan, otomatis dari awal lagi tiap ganti bulan
+    const labaBersihBisnisBulanIni = computeLabaBersihBisnis(ordersThisMonth, mutationsThisMonth);
+    const profitBulanan = labaBersihBisnisBulanIni + (manualIncomeThisMonth - manualExpenseThisMonth);
+
+    // Cash Flow: Gross Provit bulan berjalan
+    const cashFlow = ordersThisMonth.reduce((sum, o) => sum + getEffectiveGrossProvit(o), 0);
+
+    // Pengeluaran: Mutasi Ads + Biaya Lainnya + Prive + Return bulan berjalan
+    const PENGELUARAN_KATEGORI = ["Ads", "Biaya Lainnya", "Prive", "Return"];
+    const pengeluaran = mutationsThisMonth
+      .filter((m) => PENGELUARAN_KATEGORI.includes(m.kategori))
+      .reduce((sum, m) => sum + m.jumlah, 0);
+
+    const pemasukan = manualIncome + salesOrders.reduce((sum, o) => sum + o.cashIn, 0);
+
+    // ROAS & Jumlah Order: bulan berjalan
+    const adsSpendThisMonth = mutationsThisMonth.filter((m) => m.kategori === "Ads").reduce((sum, m) => sum + m.jumlah, 0);
+    const omzetThisMonth = ordersThisMonth.reduce((sum, o) => sum + o.totalCustomerBayar, 0);
+    const roas = adsSpendThisMonth > 0 ? `${(omzetThisMonth / adsSpendThisMonth).toFixed(1)}x` : "0x";
+    const jumlahOrderBulanIni = ordersThisMonth.length;
 
     const investasiTotal = investments.reduce((sum, i) => sum + i.nilai, 0);
 
     const mainGoal = goals[0];
-    const goalCollected = mainGoal?.autoLinked ? Math.max(0, profitBulanan) : mainGoal?.collected ?? 0;
+    const goalCollected = mainGoal?.autoLinked ? Math.max(0, computeTotalProfit(salesOrders, mutations, transactions)) : mainGoal?.collected ?? 0;
     const goalPct = mainGoal && mainGoal.target > 0 ? Math.round((goalCollected / mainGoal.target) * 100) : 0;
 
     return dashboardKpis.map((kpi) => {
       switch (kpi.id) {
         case "saldo-total":
-          return { ...kpi, value: formatCurrency(saldoTotal), footnote: `${accounts.length} rekening + transaksi manual` };
+          return { ...kpi, value: formatCurrency(saldoTotal), footnote: "Akumulasi semua waktu (rekening + manual + laba bisnis)" };
         case "cash-flow":
-          return { ...kpi, value: formatCurrency(cashFlow), footnote: "Manual + Penjualan bisnis" };
+          return { ...kpi, value: formatCurrency(cashFlow), footnote: "Gross Provit bulan berjalan" };
         case "pemasukan":
-          return { ...kpi, value: formatCurrency(pemasukan), footnote: `Manual + Cash In ${salesOrders.length} order` };
+          return { ...kpi, value: formatCurrency(pemasukan), footnote: `Manual + Cash In ${salesOrders.length} order (semua waktu)` };
         case "pengeluaran":
-          return { ...kpi, value: formatCurrency(pengeluaran), footnote: "Manual + Mutasi Bisnis" };
+          return { ...kpi, value: formatCurrency(pengeluaran), footnote: "Mutasi Ads/Biaya Lainnya/Prive/Return bulan ini" };
         case "profit-bulanan":
-          return { ...kpi, value: formatCurrency(profitBulanan), footnote: "Manual + Laba Bersih Bisnis" };
+          return { ...kpi, value: formatCurrency(profitBulanan), footnote: "Reset tiap bulan, masuk ke Saldo Total" };
         case "investasi":
           return { ...kpi, value: formatCurrency(investasiTotal), footnote: `${investments.length} instrumen` };
         case "roas":
-          return { ...kpi, value: roas, footnote: "Omzet / biaya Ads" };
+          return { ...kpi, value: roas, footnote: "Omzet / biaya Ads bulan ini" };
         case "jumlah-order":
-          return { ...kpi, value: String(salesOrders.length), footnote: "Total order Penjualan" };
+          return { ...kpi, value: String(jumlahOrderBulanIni), footnote: "Total order bulan ini" };
         case "target-pernikahan":
           return {
             ...kpi,

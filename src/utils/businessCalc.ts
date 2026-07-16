@@ -1,5 +1,13 @@
 import type { SalesOrder } from "@/data/pagesDummy";
 import type { BusinessMutation } from "@/store/businessMutationsStore";
+import { parseDateSlash } from "@/utils/format";
+
+/** Cek apakah tanggal (format dd/mm/yyyy) berada di bulan & tahun berjalan (sekarang). */
+export function isInCurrentMonth(dateStr: string, reference: Date = new Date()): boolean {
+  const d = parseDateSlash(dateStr);
+  if (!d) return false;
+  return d.getMonth() === reference.getMonth() && d.getFullYear() === reference.getFullYear();
+}
 
 // Kategori mutasi ini merepresentasikan pembayaran kas untuk HPP yang sudah
 // diakui di Gross Provit saat penjualan terjadi — jadi TIDAK ikut mengurangi
