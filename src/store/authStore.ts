@@ -81,10 +81,14 @@ export const useAuthStore = create<AuthState>()((set) => ({
       set({ authError: error.message });
       return false;
     }
-    if (data.user) {
-      // Baris profil dibuat otomatis lewat trigger database (lihat supabase/schema.sql)
+    if (data.session && data.user) {
+      // Ada sesi aktif -> email confirmation nonaktif, user langsung bisa dipakai.
       const profile = { ...defaultProfile, name, email };
       set({ isAuthenticated: true, profile });
+    } else {
+      // Tidak ada sesi (email confirmation aktif) -> JANGAN anggap sudah login.
+      // Halaman Login akan menampilkan layar "Cek Email Kamu".
+      set({ isAuthenticated: false });
     }
     return true;
   },
@@ -96,11 +100,13 @@ export const useAuthStore = create<AuthState>()((set) => ({
       set({ authError: error.message });
       return false;
     }
-    if (data.user) {
+    if (data.session && data.user) {
       const profile = await loadProfile(data.user.id);
       set({ isAuthenticated: true, profile });
+      return true;
     }
-    return true;
+    set({ authError: "Gagal membuat sesi login. Coba lagi." });
+    return false;
   },
 
   logout: async () => {
