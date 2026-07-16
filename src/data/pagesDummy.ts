@@ -75,6 +75,7 @@ export interface SalesOrder extends GenericRow {
   hpp: number;
   grossProvit: number;
   status: string;
+  externalOrderId: string | null;
 }
 
 export const salesOrders: SalesOrder[] = [];

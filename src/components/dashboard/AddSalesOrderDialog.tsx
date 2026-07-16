@@ -166,6 +166,7 @@ export function AddSalesOrderDialog({ open, onOpenChange }: AddSalesOrderDialogP
       hpp: totalHpp,
       grossProvit: preview.grossProvit,
       status,
+      externalOrderId: null,
     });
 
     onOpenChange(false);

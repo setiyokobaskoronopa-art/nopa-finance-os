@@ -116,8 +116,11 @@ create table if not exists public.sales_orders (
   hpp numeric not null default 0,
   gross_provit numeric not null default 0,
   status text not null default 'On Proses',
+  external_order_id text,
   created_at timestamptz not null default now()
 );
+alter table public.sales_orders add column if not exists external_order_id text;
+create index if not exists sales_orders_external_order_id_idx on public.sales_orders(user_id, external_order_id);
 alter table public.sales_orders enable row level security;
 drop policy if exists "own sales_orders" on public.sales_orders;
 create policy "own sales_orders" on public.sales_orders for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

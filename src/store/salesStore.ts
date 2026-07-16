@@ -25,6 +25,7 @@ export interface NewSalesOrder {
   hpp: number;
   grossProvit: number;
   status: string;
+  externalOrderId: string | null;
 }
 
 interface SalesState {
@@ -32,6 +33,7 @@ interface SalesState {
   loading: boolean;
   fetchItems: () => Promise<void>;
   addItem: (item: NewSalesOrder) => Promise<void>;
+  addManyItems: (items: NewSalesOrder[]) => Promise<number>;
   removeItem: (id: string) => Promise<void>;
   updateItem: (id: string, patch: Partial<SalesOrder>) => Promise<void>;
 }
@@ -59,6 +61,7 @@ function orderToRow(item: Partial<NewSalesOrder>): Record<string, unknown> {
   if (item.hpp !== undefined) row.hpp = item.hpp;
   if (item.grossProvit !== undefined) row.gross_provit = item.grossProvit;
   if (item.status !== undefined) row.status = item.status;
+  if (item.externalOrderId !== undefined) row.external_order_id = item.externalOrderId;
   return row;
 }
 
@@ -98,6 +101,7 @@ function orderFromRow(row: Record<string, unknown>): SalesOrder {
     hpp: Number(row.hpp),
     grossProvit: Number(row.gross_provit),
     status: row.status as string,
+    externalOrderId: (row.external_order_id as string) ?? null,
   };
 }
 
@@ -161,6 +165,58 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
       harga_jual: li.hargaJual,
       hpp_source: li.hppSource,
     })) }), ...state.items] }));
+  },
+
+  addManyItems: async (items) => {
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return 0;
+    const userId = userData.user.id;
+    let successCount = 0;
+    const inserted: SalesOrder[] = [];
+
+    for (const item of items) {
+      const { data: orderRow, error: orderError } = await supabase
+        .from("sales_orders")
+        .insert({ ...orderToRow(item), user_id: userId })
+        .select()
+        .single();
+      if (orderError || !orderRow) {
+        console.error("[sales_orders] bulk insert error:", orderError?.message);
+        continue;
+      }
+      const lineItems = item.items ?? [];
+      if (lineItems.length > 0) {
+        const rows = lineItems.map((li) => ({
+          order_id: orderRow.id,
+          user_id: userId,
+          produk: li.produk,
+          box: li.box,
+          hpp: li.hpp,
+          harga_jual: li.hargaJual,
+          hpp_source: li.hppSource,
+        }));
+        const { error: itemsError } = await supabase.from("order_items").insert(rows);
+        if (itemsError) console.error("[order_items] bulk insert error:", itemsError.message);
+      }
+      inserted.push(
+        orderFromRow({
+          ...orderRow,
+          order_items: lineItems.map((li) => ({
+            produk: li.produk,
+            box: li.box,
+            hpp: li.hpp,
+            harga_jual: li.hargaJual,
+            hpp_source: li.hppSource,
+          })),
+        })
+      );
+      successCount += 1;
+    }
+
+    if (inserted.length > 0) {
+      set((state) => ({ items: [...inserted, ...state.items] }));
+    }
+    return successCount;
   },
 
   removeItem: async (id) => {

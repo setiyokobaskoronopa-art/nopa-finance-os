@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { Link2 } from "lucide-react";
+import { Link2, Upload } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { AddSalesOrderDialog } from "@/components/dashboard/AddSalesOrderDialog";
+import { ImportOrdersDialog } from "@/components/dashboard/ImportOrdersDialog";
+import { Button } from "@/components/ui/Button";
 import { formatCurrency } from "@/utils/format";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
@@ -101,6 +103,7 @@ export default function Sales() {
   const orders = useSalesStore((s) => s.items);
   const removeItem = useSalesStore((s) => s.removeItem);
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   const kpis = useMemo<KpiDatum[]>(() => {
     const totalBayar = orders.reduce((s, o) => s + o.totalCustomerBayar, 0);
@@ -117,10 +120,15 @@ export default function Sales() {
 
   return (
     <>
-      <div className="mb-4 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
-        <Link2 size={14} className="shrink-0" />
-        Data ini otomatis terhubung ke <strong className="mx-1">Keuangan Bisnis</strong>,{" "}
-        <strong className="mx-1">Customer</strong>, dan <strong className="mx-1">Stok & Return</strong> — klik dropdown Status untuk update progres order.
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
+          <Link2 size={14} className="shrink-0" />
+          Data ini otomatis terhubung ke <strong className="mx-1">Keuangan Bisnis</strong>,{" "}
+          <strong className="mx-1">Customer</strong>, dan <strong className="mx-1">Stok & Return</strong> — klik dropdown Status untuk update progres order.
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setImportOpen(true)} className="shrink-0">
+          <Upload size={15} /> Import Order
+        </Button>
       </div>
       <FinancePageTemplate
         title="Penjualan"
@@ -136,6 +144,7 @@ export default function Sales() {
         emptyDescription="Order penjualan yang kamu buat akan muncul di sini."
       />
       <AddSalesOrderDialog open={open} onOpenChange={setOpen} />
+      <ImportOrdersDialog open={importOpen} onOpenChange={setImportOpen} />
     </>
   );
 }
