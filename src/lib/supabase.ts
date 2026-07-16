@@ -1,11 +1,13 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Supabase sekarang menyebutnya "Publishable key" (menggantikan istilah lama "anon key").
+// Kita terima keduanya supaya kompatibel dengan project lama maupun baru.
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
-    "[Nopa Finance OS] VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY belum diatur. " +
+    "[Nopa Finance OS] VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY belum diatur. " +
       "Salin .env.example ke .env dan isi dengan kredensial project Supabase kamu."
   );
 }

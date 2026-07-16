@@ -15,17 +15,19 @@ Dashboard keuangan pribadi & bisnis — frontend React + backend Supabase (Postg
 4. Ini akan otomatis membuat semua tabel (accounts, transactions, sales_orders, order_items, business_mutations, goals, dll), Row Level Security, bucket Storage untuk foto profil, dan trigger pembuatan profil otomatis saat user daftar
 
 ### 3. Isi kredensial
-1. Di dashboard, buka **Project Settings → API**
-2. Salin **Project URL** dan **anon public key**
-3. Copy file `.env.example` menjadi `.env`:
+1. Di dashboard project, klik tombol **Connect** (kanan atas)
+2. Pada dropdown **Framework**, pilih **React**
+3. Scroll ke bagian **"Connect your app"** — di situ sudah muncul Project URL dan Publishable key asli punya project kamu
+4. Copy file `.env.example` menjadi `.env`:
    ```bash
    cp .env.example .env
    ```
-4. Isi `.env`:
+5. Isi `.env`:
    ```
    VITE_SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=eyJhbGci...
+   VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxxxxxxxxxxx
    ```
+   (Kalau project kamu masih menampilkan key lama berformat `eyJhbGci...`, itu juga tetap bisa dipakai — isi di variabel yang sama.)
 
 ### 4. Jalankan
 ```bash
@@ -38,7 +40,7 @@ Buka `http://localhost:5173` → klik **"Belum punya akun? Daftar"** untuk membu
 > **Catatan:** Supabase mengirim email konfirmasi saat mendaftar. Untuk development cepat tanpa perlu cek email, kamu bisa nonaktifkan "Confirm email" di **Authentication → Providers → Email** pada dashboard Supabase.
 
 ### 5. Deploy ke Vercel
-Tambahkan environment variable yang sama (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) di **Vercel → Project Settings → Environment Variables**, lalu redeploy.
+Tambahkan environment variable yang sama (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) di **Vercel → Project Settings → Environment Variables**, lalu redeploy.
 
 ---
 
