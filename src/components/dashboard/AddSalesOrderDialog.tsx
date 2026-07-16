@@ -64,7 +64,6 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
   const [lineItems, setLineItems] = useState<OrderLineItem[]>([makeDefaultLineItem()]);
   const [hargaTotalProduk, setHargaTotalProduk] = useState("");
   const [diskonOngkir, setDiskonOngkir] = useState("0");
-  const [totalCustomerBayar, setTotalCustomerBayar] = useState("");
   const [promo, setPromo] = useState("0");
   const [status, setStatus] = useState("On Proses");
 
@@ -84,7 +83,6 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
     setEkspedis(EKSPEDIS_OPTIONS[0]);
     setLineItems([makeDefaultLineItem()]);
     setDiskonOngkir("0");
-    setTotalCustomerBayar("");
     setPromo("0");
     setStatus("On Proses");
   };
@@ -105,7 +103,6 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
       setLineItems(editingOrder.items && editingOrder.items.length > 0 ? editingOrder.items : [makeDefaultLineItem()]);
       setHargaTotalProduk(String(editingOrder.hargaTotalProduk));
       setDiskonOngkir(String(editingOrder.diskonOngkir));
-      setTotalCustomerBayar(String(editingOrder.totalCustomerBayar));
       setPromo(String(editingOrder.promo));
       setStatus(editingOrder.status);
     } else {
@@ -127,13 +124,15 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
   const isCod = metodePembayaran === "COD";
 
   const preview = useMemo(() => {
-    const totalBayar = num(totalCustomerBayar) || num(hargaTotalProduk);
+    // Rumus bisnis: Total Customer Bayar = Harga Total Produk - Diskon Ongkir
+    const totalBayar = Math.max(0, num(hargaTotalProduk) - num(diskonOngkir));
     const biayaCod = isCod ? Math.round(totalBayar * COD_FEE_RATE) : 0;
     const pajakCod = isCod ? Math.round(totalBayar * COD_TAX_RATE) : 0;
-    const cashIn = totalBayar - biayaCod - pajakCod - num(diskonOngkir) - num(promo);
+    // Diskon Ongkir sudah kepotong di atas, jadi di sini tidak dipotong lagi (hindari dobel potong)
+    const cashIn = totalBayar - biayaCod - pajakCod - num(promo);
     const grossProvit = cashIn - totalHpp;
     return { totalBayar, biayaCod, pajakCod, cashIn, grossProvit };
-  }, [totalCustomerBayar, hargaTotalProduk, diskonOngkir, promo, totalHpp, isCod]);
+  }, [hargaTotalProduk, diskonOngkir, promo, totalHpp, isCod]);
 
   const updateLineItem = (idx: number, patch: Partial<OrderLineItem>) => {
     setLineItems((prev) => prev.map((item, i) => (i === idx ? { ...item, ...patch } : item)));
@@ -417,14 +416,10 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1.5 block text-xs font-medium text-secondary-500">
-                Total Customer Bayar (Rp)
+                Total Customer Bayar (Rp) <span className="text-secondary-300">— otomatis</span>
               </label>
-              <Input
-                inputMode="numeric"
-                value={totalCustomerBayar}
-                onChange={(e) => setTotalCustomerBayar(e.target.value)}
-                placeholder={hargaTotalProduk || "0"}
-              />
+              <Input value={formatCurrency(preview.totalBayar)} disabled />
+              <p className="mt-1 text-[10px] text-secondary-400">= Harga Total Produk − Diskon Ongkir</p>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-medium text-secondary-500">Promo (Rp)</label>
