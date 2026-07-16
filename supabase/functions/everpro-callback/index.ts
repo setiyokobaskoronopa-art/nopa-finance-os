@@ -14,23 +14,41 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // Mapping tracking_code Everpro -> status Nopa Finance OS.
-// TODO: lengkapi setelah dapat daftar lengkap tracking_code dari dokumentasi/CS Everpro.
+// Sumber: dokumentasi resmi Everpro Open API (Callback Tracking).
+//
+//   WAITING            -> order dibuat, nunggu pickup/drop off        -> On Proses
+//   FAILED PICKUP      -> kurir gagal ambil paket                     -> Problem
+//   PICKEDUP           -> sudah diambil kurir, dalam proses kirim     -> On Proses
+//   IN PROCESS RETURN  -> sedang dalam proses balik ke pengirim       -> Return
+//   DELIVERED          -> selesai, paket diterima                    -> Delivered
+//   REJECTED           -> ditolak penerima (misal alamat salah)       -> Problem
+//   IN TROUBLE         -> ada masalah teknis (misal Criss Cross)      -> Problem
+//   CANCELED           -> order dibatalkan                           -> Problem
+//   RETURN             -> selesai, paket balik ke pengirim            -> Return
+//   LOST/BROKEN        -> selesai, paket hilang/rusak                 -> Problem
+//   FORCE MAJEURE      -> tidak terkirim/balik karena force majeure   -> Problem
+//
+// Key di-normalisasi (huruf besar semua, tanpa spasi/underscore/garis miring)
+// supaya tetap cocok apapun format persis yang Everpro kirim
+// ("FAILED PICKUP" / "FAILED_PICKUP" / "FAILEDPICKUP" semua akan match).
 const TRACKING_CODE_MAP: Record<string, string> = {
+  WAITING: "On Proses",
+  FAILEDPICKUP: "Problem",
+  PICKEDUP: "On Proses",
+  INPROCESSRETURN: "Return",
   DELIVERED: "Delivered",
-  DELIVERY: "Delivered",
-  COMPLETED: "Delivered",
+  REJECTED: "Problem",
+  INTROUBLE: "Problem",
   CANCELED: "Problem",
   CANCELLED: "Problem",
-  FAILED: "Problem",
-  PROBLEM: "Problem",
   RETURN: "Return",
-  RETURNED: "Return",
-  RETUR: "Return",
-  ON_PROCESS: "On Proses",
-  PICKED_UP: "On Proses",
-  IN_TRANSIT: "On Proses",
-  OUT_FOR_DELIVERY: "On Proses",
+  LOSTBROKEN: "Problem",
+  FORCEMAJEURE: "Problem",
 };
+
+function normalizeTrackingCode(code: string): string {
+  return code.toUpperCase().replace(/[^A-Z]/g, "");
+}
 
 interface EverproTrackingPayload {
   awb_number?: string;
@@ -81,7 +99,7 @@ Deno.serve(async (req) => {
 
     if (existingOrder) {
       matchedOrderId = existingOrder.id;
-      const mappedStatus = payload.tracking_code ? TRACKING_CODE_MAP[payload.tracking_code.toUpperCase()] : undefined;
+      const mappedStatus = payload.tracking_code ? TRACKING_CODE_MAP[normalizeTrackingCode(payload.tracking_code)] : undefined;
 
       if (mappedStatus) {
         await supabase.from("sales_orders").update({ status: mappedStatus }).eq("id", existingOrder.id);
