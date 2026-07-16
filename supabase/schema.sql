@@ -28,10 +28,13 @@ create table if not exists public.profiles (
 
 alter table public.profiles enable row level security;
 
+drop policy if exists "Users can view own profile" on public.profiles;
 create policy "Users can view own profile" on public.profiles
   for select using (auth.uid() = id);
+drop policy if exists "Users can insert own profile" on public.profiles;
 create policy "Users can insert own profile" on public.profiles
   for insert with check (auth.uid() = id);
+drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile" on public.profiles
   for update using (auth.uid() = id);
 
@@ -67,6 +70,7 @@ create table if not exists public.accounts (
   created_at timestamptz not null default now()
 );
 alter table public.accounts enable row level security;
+drop policy if exists "own accounts" on public.accounts;
 create policy "own accounts" on public.accounts for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- TRANSACTIONS (transaksi manual dashboard)
@@ -84,6 +88,7 @@ create table if not exists public.transactions (
   created_at timestamptz not null default now()
 );
 alter table public.transactions enable row level security;
+drop policy if exists "own transactions" on public.transactions;
 create policy "own transactions" on public.transactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- SALES ORDERS (Penjualan)
@@ -114,6 +119,7 @@ create table if not exists public.sales_orders (
   created_at timestamptz not null default now()
 );
 alter table public.sales_orders enable row level security;
+drop policy if exists "own sales_orders" on public.sales_orders;
 create policy "own sales_orders" on public.sales_orders for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ORDER ITEMS (baris produk per order — mendukung multi-produk per order)
@@ -128,6 +134,7 @@ create table if not exists public.order_items (
   hpp_source text not null default 'Baru'
 );
 alter table public.order_items enable row level security;
+drop policy if exists "own order_items" on public.order_items;
 create policy "own order_items" on public.order_items for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- BUSINESS MUTATIONS (Mutasi Bisnis: Ads / Biaya Lainnya / Prive / Return)
@@ -141,6 +148,7 @@ create table if not exists public.business_mutations (
   created_at timestamptz not null default now()
 );
 alter table public.business_mutations enable row level security;
+drop policy if exists "own business_mutations" on public.business_mutations;
 create policy "own business_mutations" on public.business_mutations for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- GOALS (Target)
@@ -155,6 +163,7 @@ create table if not exists public.goals (
   created_at timestamptz not null default now()
 );
 alter table public.goals enable row level security;
+drop policy if exists "own goals" on public.goals;
 create policy "own goals" on public.goals for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- PERSONAL TRANSACTIONS (Keuangan Pribadi, manual)
@@ -169,6 +178,7 @@ create table if not exists public.personal_transactions (
   created_at timestamptz not null default now()
 );
 alter table public.personal_transactions enable row level security;
+drop policy if exists "own personal_transactions" on public.personal_transactions;
 create policy "own personal_transactions" on public.personal_transactions for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- SUPPLIERS
@@ -183,6 +193,7 @@ create table if not exists public.suppliers (
   created_at timestamptz not null default now()
 );
 alter table public.suppliers enable row level security;
+drop policy if exists "own suppliers" on public.suppliers;
 create policy "own suppliers" on public.suppliers for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- BUDGET
@@ -196,6 +207,7 @@ create table if not exists public.budgets (
   created_at timestamptz not null default now()
 );
 alter table public.budgets enable row level security;
+drop policy if exists "own budgets" on public.budgets;
 create policy "own budgets" on public.budgets for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- INVESTMENTS
@@ -209,6 +221,7 @@ create table if not exists public.investments (
   created_at timestamptz not null default now()
 );
 alter table public.investments enable row level security;
+drop policy if exists "own investments" on public.investments;
 create policy "own investments" on public.investments for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ASSETS
@@ -222,6 +235,7 @@ create table if not exists public.assets (
   created_at timestamptz not null default now()
 );
 alter table public.assets enable row level security;
+drop policy if exists "own assets" on public.assets;
 create policy "own assets" on public.assets for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- REPORTS
@@ -235,6 +249,7 @@ create table if not exists public.reports (
   created_at timestamptz not null default now()
 );
 alter table public.reports enable row level security;
+drop policy if exists "own reports" on public.reports;
 create policy "own reports" on public.reports for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ----------------------------------------------------------------------------
@@ -244,9 +259,12 @@ insert into storage.buckets (id, name, public)
 values ('avatars', 'avatars', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Avatar images are publicly accessible" on storage.objects;
 create policy "Avatar images are publicly accessible" on storage.objects
   for select using (bucket_id = 'avatars');
+drop policy if exists "Users can upload their own avatar" on storage.objects;
 create policy "Users can upload their own avatar" on storage.objects
   for insert with check (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
+drop policy if exists "Users can update their own avatar" on storage.objects;
 create policy "Users can update their own avatar" on storage.objects
   for update using (bucket_id = 'avatars' and auth.uid()::text = (storage.foldername(name))[1]);
