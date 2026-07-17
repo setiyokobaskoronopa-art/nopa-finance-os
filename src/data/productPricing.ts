@@ -18,11 +18,11 @@ export const PRODUCT_PRICING: Record<string, PriceTier[]> = {
     { box: 6, hpp: 2922000, hargaJual: 5050000 },
   ],
   "BIO-LINGZHI PRO": [
-    { box: 1, hpp: 292000, hargaJual: 499000 },
-    { box: 2, hpp: 584000, hargaJual: 939000 },
-    { box: 3, hpp: 876000, hargaJual: 1379000 },
-    { box: 4, hpp: 1168000, hargaJual: 1819000 },
-    { box: 5, hpp: 1460000, hargaJual: 2259000 },
+    { box: 1, hpp: 289000, hargaJual: 499000 },
+    { box: 2, hpp: 578000, hargaJual: 939000 },
+    { box: 3, hpp: 867000, hargaJual: 1379000 },
+    { box: 4, hpp: 1156000, hargaJual: 1819000 },
+    { box: 5, hpp: 1445000, hargaJual: 2259000 },
   ],
   EROJAN: [
     { box: 1, hpp: 403800, hargaJual: 769000 },
