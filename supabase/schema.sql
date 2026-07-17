@@ -251,8 +251,14 @@ create table if not exists public.reports (
   periode text not null default '',
   tipe text not null default 'Bulanan',
   dibuat text not null,
+  snapshot_data jsonb,
+  periode_month int,
+  periode_year int,
   created_at timestamptz not null default now()
 );
+alter table public.reports add column if not exists snapshot_data jsonb;
+alter table public.reports add column if not exists periode_month int;
+alter table public.reports add column if not exists periode_year int;
 alter table public.reports enable row level security;
 drop policy if exists "own reports" on public.reports;
 create policy "own reports" on public.reports for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

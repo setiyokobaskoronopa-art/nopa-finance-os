@@ -90,6 +90,9 @@ function reportToRow(item: Partial<ReportRow>): Record<string, unknown> {
   if (item.periode !== undefined) row.periode = item.periode;
   if (item.tipe !== undefined) row.tipe = item.tipe;
   if (item.dibuat !== undefined) row.dibuat = item.dibuat;
+  if (item.snapshotData !== undefined) row.snapshot_data = item.snapshotData;
+  if (item.periodeMonth !== undefined) row.periode_month = item.periodeMonth;
+  if (item.periodeYear !== undefined) row.periode_year = item.periodeYear;
   return row;
 }
 function reportFromRow(row: Record<string, unknown>): ReportRow {
@@ -99,6 +102,9 @@ function reportFromRow(row: Record<string, unknown>): ReportRow {
     periode: row.periode as string,
     tipe: row.tipe as string,
     dibuat: row.dibuat as string,
+    snapshotData: (row.snapshot_data as ReportRow["snapshotData"]) ?? null,
+    periodeMonth: (row.periode_month as number) ?? null,
+    periodeYear: (row.periode_year as number) ?? null,
   };
 }
 export const useReportsStore = createSupabaseEntityStore<ReportRow>("reports", reportToRow, reportFromRow);

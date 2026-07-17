@@ -20,6 +20,8 @@ import {
 } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
 import { useStockReturnsStore } from "@/store/stockReturnsStore";
+import { computeMonthlySnapshot, monthLabel } from "@/utils/monthlyReportSnapshot";
+import { formatDateSlash } from "@/utils/format";
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -31,20 +33,58 @@ export function DashboardLayout() {
     closeAccountDialog,
   } = useUIStore();
 
-  // Muat semua data dari Supabase begitu user berhasil masuk.
+  // Muat semua data dari Supabase begitu user berhasil masuk, lalu cek apakah
+  // laporan bulan lalu sudah pernah dibuat - kalau belum, buatkan otomatis sekarang.
   useEffect(() => {
-    useAccountsStoreBase.getState().fetchItems();
-    useTransactionsStoreBase.getState().fetchItems();
-    useGoalsStore.getState().fetchGoals();
-    useSalesStore.getState().fetchItems();
-    useSuppliersStore.getState().fetchItems();
-    useBudgetStore.getState().fetchItems();
-    useInvestmentStore.getState().fetchItems();
-    useAssetsStore.getState().fetchItems();
-    useReportsStore.getState().fetchItems();
-    usePersonalTxStore.getState().fetchItems();
-    useBusinessMutationsStore.getState().fetchItems();
-    useStockReturnsStore.getState().fetchItems();
+    (async () => {
+      await Promise.all([
+        useAccountsStoreBase.getState().fetchItems(),
+        useTransactionsStoreBase.getState().fetchItems(),
+        useGoalsStore.getState().fetchGoals(),
+        useSalesStore.getState().fetchItems(),
+        useSuppliersStore.getState().fetchItems(),
+        useBudgetStore.getState().fetchItems(),
+        useInvestmentStore.getState().fetchItems(),
+        useAssetsStore.getState().fetchItems(),
+        useReportsStore.getState().fetchItems(),
+        usePersonalTxStore.getState().fetchItems(),
+        useBusinessMutationsStore.getState().fetchItems(),
+        useStockReturnsStore.getState().fetchItems(),
+      ]);
+
+      const now = new Date();
+      const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const lastMonth = lastMonthDate.getMonth();
+      const lastYear = lastMonthDate.getFullYear();
+
+      const existingReports = useReportsStore.getState().items;
+      const alreadyExists = existingReports.some(
+        (r) => r.periodeMonth === lastMonth && r.periodeYear === lastYear
+      );
+      if (alreadyExists) return;
+
+      const orders = useSalesStore.getState().items;
+      // Baru buatkan laporan otomatis kalau memang ada aktivitas di bulan itu
+      const hasDataLastMonth = orders.some((o) => {
+        const d = new Date(o.tanggal.split("/").reverse().join("-"));
+        return d.getMonth() === lastMonth && d.getFullYear() === lastYear;
+      });
+      if (!hasDataLastMonth) return;
+
+      const mutations = useBusinessMutationsStore.getState().items;
+      const transactions = useTransactionsStoreBase.getState().items;
+      const snapshot = computeMonthlySnapshot(lastMonth, lastYear, orders, mutations, transactions);
+
+      await useReportsStore.getState().addItem({
+        nama: `Laporan ${monthLabel(lastMonth, lastYear)}`,
+        periode: monthLabel(lastMonth, lastYear),
+        tipe: "Bulanan (Otomatis)",
+        dibuat: formatDateSlash(now),
+        snapshotData: snapshot,
+        periodeMonth: lastMonth,
+        periodeYear: lastYear,
+      });
+    })();
   }, []);
 
   return (

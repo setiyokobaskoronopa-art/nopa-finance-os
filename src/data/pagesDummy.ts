@@ -230,11 +230,26 @@ export const reportKpis: KpiDatum[] = [
   { id: "rp4", label: "Format Export", value: "PDF, Excel", icon: "Download", accent: "secondary" },
 ];
 
+export interface ReportSnapshot {
+  omzet: number;
+  totalGrossProvit: number;
+  labaBersihBisnis: number;
+  manualNet: number;
+  totalProfitGabungan: number;
+  pengeluaran: number;
+  jumlahOrder: number;
+  roas: string;
+  mutasiPerKategori: { kategori: string; jumlah: number }[];
+}
+
 export interface ReportRow extends GenericRow {
   nama: string;
   periode: string;
   dibuat: string;
   tipe: string;
+  snapshotData?: ReportSnapshot | null;
+  periodeMonth?: number | null;
+  periodeYear?: number | null;
 }
 
 export const reportRows: ReportRow[] = [];
