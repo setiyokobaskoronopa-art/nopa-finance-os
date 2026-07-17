@@ -69,7 +69,7 @@ export default function Products() {
 
       <div className="mb-6 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
         <Link2 size={14} className="shrink-0" />
-        Barang berstatus <strong className="mx-1">Tersedia</strong> bisa dipilih di form Buat/Edit Order (Penjualan) sebagai Stock Return — otomatis jadi <strong className="mx-1">Terpakai</strong> begitu dipakai, dan balik <strong className="mx-1">Tersedia</strong> kalau order itu diedit/dihapus.
+        Order yang statusnya diubah jadi <strong className="mx-1">Return</strong> otomatis masuk ke sini (isi ID Order manual belakangan). Barang <strong className="mx-1">Tersedia</strong> bisa dipilih lagi di form Buat/Edit Order sebagai Stock Return.
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -122,7 +122,13 @@ export default function Products() {
                         </td>
                         <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{formatCurrency(sr.hpp)}</td>
                         <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{formatCurrency(sr.hargaJual)}</td>
-                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{sr.idOrder || "-"}</td>
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">
+                          {sr.idOrder || (
+                            <span className="italic text-secondary-300">
+                              {sr.sourceOrderId ? "isi manual" : "-"}
+                            </span>
+                          )}
+                        </td>
                         <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{sr.resiLama || "-"}</td>
                         <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{sr.resiBaru || "-"}</td>
                         <td className="px-5 py-3.5 text-center">

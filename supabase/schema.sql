@@ -297,8 +297,10 @@ create table if not exists public.stock_returns (
   resi_baru text,
   status text not null default 'Tersedia', -- Tersedia | Terpakai
   used_by_order_id uuid references public.sales_orders(id) on delete set null,
+  source_order_id uuid references public.sales_orders(id) on delete set null,
   created_at timestamptz not null default now()
 );
+alter table public.stock_returns add column if not exists source_order_id uuid references public.sales_orders(id) on delete set null;
 alter table public.stock_returns enable row level security;
 drop policy if exists "own stock_returns" on public.stock_returns;
 create policy "own stock_returns" on public.stock_returns for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

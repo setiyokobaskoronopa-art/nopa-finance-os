@@ -52,6 +52,7 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
   const stockReturns = useStockReturnsStore((s) => s.items);
   const markStockReturnUsed = useStockReturnsStore((s) => s.markAsUsed);
   const markStockReturnAvailable = useStockReturnsStore((s) => s.markAsAvailable);
+  const autoLogFromOrder = useStockReturnsStore((s) => s.autoLogFromOrder);
   const isEditing = Boolean(editingOrder);
 
   const [cs, setCs] = useState(profile.name || "");
@@ -221,11 +222,17 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
       for (const id of newStockReturnIds) {
         await markStockReturnUsed(id, editingOrder.id, resiBaru);
       }
+      if (status === "Return") {
+        await autoLogFromOrder(editingOrder.id, lineItems, resiBaru);
+      }
     } else {
       const newOrderId = await addItem({ ...payload, tanggal, externalOrderId: null });
       if (newOrderId) {
         for (const id of newStockReturnIds) {
           await markStockReturnUsed(id, newOrderId, resiBaru);
+        }
+        if (status === "Return") {
+          await autoLogFromOrder(newOrderId, lineItems, resiBaru);
         }
       }
     }

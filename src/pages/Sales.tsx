@@ -31,8 +31,20 @@ const kodeVariant: Record<string, "default" | "warning" | "success"> = { O: "def
 
 function StatusCell({ row }: { row: SalesOrder }) {
   const updateItem = useSalesStore((s) => s.updateItem);
+  const autoLogFromOrder = useStockReturnsStore((s) => s.autoLogFromOrder);
+
+  const handleChange = (v: string) => {
+    updateItem(row.id, { status: v });
+    if (v === "Return") {
+      const items = row.items && row.items.length > 0
+        ? row.items
+        : [{ produk: row.produk, box: row.box, hpp: row.hpp, hargaJual: row.hargaTotalProduk }];
+      autoLogFromOrder(row.id, items, row.awbNumber);
+    }
+  };
+
   return (
-    <Select value={row.status} onValueChange={(v) => updateItem(row.id, { status: v })}>
+    <Select value={row.status} onValueChange={handleChange}>
       <SelectTrigger
         className={`h-8 w-[120px] text-xs ${
           row.status === "Delivered"

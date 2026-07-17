@@ -12,6 +12,7 @@ export interface StockReturnItem {
   resiBaru: string | null;
   status: "Tersedia" | "Terpakai";
   usedByOrderId: string | null;
+  sourceOrderId: string | null;
   createdAt: string;
 }
 
@@ -33,6 +34,11 @@ interface StockReturnsState {
   removeItem: (id: string) => Promise<void>;
   markAsUsed: (id: string, orderId: string, resiBaru: string | null) => Promise<void>;
   markAsAvailable: (id: string) => Promise<void>;
+  autoLogFromOrder: (
+    orderId: string,
+    items: { produk: string; box: string; hpp: number; hargaJual: number }[],
+    resiLama: string | null
+  ) => Promise<void>;
 }
 
 function fromRow(row: Record<string, unknown>): StockReturnItem {
@@ -47,6 +53,7 @@ function fromRow(row: Record<string, unknown>): StockReturnItem {
     resiBaru: (row.resi_baru as string) ?? null,
     status: (row.status as "Tersedia" | "Terpakai") ?? "Tersedia",
     usedByOrderId: (row.used_by_order_id as string) ?? null,
+    sourceOrderId: (row.source_order_id as string) ?? null,
     createdAt: row.created_at as string,
   };
 }
@@ -159,5 +166,32 @@ export const useStockReturnsStore = create<StockReturnsState>()((set, get) => ({
       console.error("[stock_returns] markAsAvailable error:", error.message);
       set({ items: prev });
     }
+  },
+
+  autoLogFromOrder: async (orderId, items, resiLama) => {
+    // Jangan bikin dobel kalau order ini sudah pernah otomatis dicatat sebelumnya
+    const alreadyLogged = get().items.some((it) => it.sourceOrderId === orderId);
+    if (alreadyLogged || items.length === 0) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) return;
+
+    const rows = items.map((li) => ({
+      user_id: userData.user!.id,
+      produk: li.produk,
+      box: li.box,
+      hpp: li.hpp,
+      harga_jual: li.hargaJual,
+      id_order: "",
+      resi_lama: resiLama ?? "",
+      status: "Tersedia",
+      source_order_id: orderId,
+    }));
+    const { data, error } = await supabase.from("stock_returns").insert(rows).select();
+    if (error || !data) {
+      console.error("[stock_returns] autoLogFromOrder error:", error?.message);
+      return;
+    }
+    set((state) => ({ items: [...data.map(fromRow), ...state.items] }));
   },
 }));
