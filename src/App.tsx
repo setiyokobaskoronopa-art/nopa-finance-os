@@ -8,6 +8,7 @@ import BusinessFinance from "@/pages/BusinessFinance";
 import Sales from "@/pages/Sales";
 import Products from "@/pages/Products";
 import Customers from "@/pages/Customers";
+import CustomerDetail from "@/pages/CustomerDetail";
 import Suppliers from "@/pages/Suppliers";
 import Accounts from "@/pages/Accounts";
 import BudgetPage from "@/pages/BudgetPage";
@@ -52,6 +53,7 @@ function App() {
         <Route path="/penjualan" element={<Sales />} />
         <Route path="/produk" element={<Products />} />
         <Route path="/customer" element={<Customers />} />
+        <Route path="/customer/:key" element={<CustomerDetail />} />
         <Route path="/supplier" element={<Suppliers />} />
         <Route path="/rekening" element={<Accounts />} />
         <Route path="/budget" element={<BudgetPage />} />

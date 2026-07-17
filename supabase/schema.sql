@@ -316,6 +316,25 @@ create policy "own stock_returns" on public.stock_returns for all using (auth.ui
 alter table public.order_items add column if not exists stock_return_id uuid references public.stock_returns(id) on delete set null;
 
 -- ----------------------------------------------------------------------------
+-- CUSTOMERS (data tambahan per customer - saat ini cuma reminder follow-up.
+-- Data utama customer tetap dihitung otomatis dari sales_orders, tabel ini
+-- cuma nyimpen hal yang tidak bisa diturunkan dari situ)
+-- ----------------------------------------------------------------------------
+create table if not exists public.customers (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  customer_key text not null, -- samain sama key yang dipakai di halaman Customer (no wa/nama, lowercase)
+  reminder_date text,
+  reminder_note text,
+  reminder_done boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (user_id, customer_key)
+);
+alter table public.customers enable row level security;
+drop policy if exists "own customers" on public.customers;
+create policy "own customers" on public.customers for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ----------------------------------------------------------------------------
 -- Storage bucket untuk foto profil (buat manual di menu Storage jika belum ada)
 -- ----------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
