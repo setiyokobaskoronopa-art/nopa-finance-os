@@ -77,27 +77,27 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-secondary-100/80 bg-white/95 backdrop-blur-xl transition-transform duration-300 dark:border-secondary-800 dark:bg-secondary-900/95 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex w-[260px] flex-col border-r border-sidebar-border bg-sidebar backdrop-blur-xl transition-transform duration-300 lg:sticky lg:top-0 lg:z-30 lg:h-screen lg:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex items-center justify-between gap-2 px-5 py-6">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-glow">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow-accent">
               <Sparkles className="h-4.5 w-4.5" size={18} />
             </div>
             <div className="leading-tight">
-              <p className="text-[15px] font-bold tracking-tight text-secondary-900 dark:text-white">
+              <p className="text-[15px] font-bold tracking-tight text-white">
                 NOPA
               </p>
-              <p className="text-[10px] font-medium uppercase tracking-wider text-secondary-400">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-white/40">
                 Finance OS
               </p>
             </div>
           </div>
           <button
             onClick={onCloseMobile}
-            className="rounded-lg p-1.5 text-secondary-400 hover:bg-secondary-100 dark:hover:bg-secondary-800 lg:hidden"
+            className="rounded-lg p-1.5 text-white/50 hover:bg-sidebar-hover hover:text-white lg:hidden"
           >
             <X size={18} />
           </button>
@@ -114,8 +114,8 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
                 cn(
                   "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-primary-50 text-primary-700 dark:bg-primary-500/10 dark:text-primary-300"
-                    : "text-secondary-500 hover:bg-secondary-50 hover:text-secondary-900 dark:text-secondary-400 dark:hover:bg-secondary-800/60 dark:hover:text-white"
+                    ? "bg-primary-500/15 text-primary-300"
+                    : "text-white/55 hover:bg-sidebar-hover hover:text-white"
                 )
               }
             >
@@ -129,7 +129,7 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
                   {isActive && (
                     <motion.span
                       layoutId="active-pill"
-                      className="absolute left-0 h-5 w-1 rounded-r-full bg-primary-600"
+                      className="absolute left-0 h-5 w-1 rounded-r-full bg-primary-400"
                       transition={{ type: "spring", stiffness: 350, damping: 30 }}
                     />
                   )}
@@ -141,15 +141,15 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
           ))}
         </nav>
 
-        <div className="mx-3 mb-4 rounded-2xl bg-gradient-to-br from-primary-600 to-primary-800 p-4 text-white shadow-glow">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary-100">
+        <div className="mx-3 mb-4 rounded-2xl bg-gradient-to-br from-accent-500 to-accent-700 p-4 text-white shadow-glow-accent">
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent-100">
             {mainGoal ? mainGoal.name : "Target 100 Juta Pertama"}
           </p>
           <p className="mt-1 text-lg font-bold">{pct}% Tercapai</p>
           <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-white/20">
             <div className="h-full rounded-full bg-white transition-all duration-500" style={{ width: `${pct}%` }} />
           </div>
-          <p className="mt-2 text-[11px] text-primary-100">
+          <p className="mt-2 text-[11px] text-accent-100">
             {mainGoal ? `${formatCurrency(collected, { compact: true })} / ${formatCurrency(mainGoal.target, { compact: true })}` : "Belum diatur"}
           </p>
         </div>

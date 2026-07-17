@@ -65,7 +65,7 @@ export function FloatingActionButton() {
       <motion.button
         onClick={() => setOpen((v) => !v)}
         whileTap={{ scale: 0.92 }}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-glow"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow-glow-accent"
         aria-label="Quick actions"
       >
         <motion.div animate={{ rotate: open ? 135 : 0 }} transition={{ duration: 0.2 }}>

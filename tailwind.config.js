@@ -21,6 +21,25 @@ export default {
           800: "#1D40A0",
           900: "#1E3A7E",
         },
+        accent: {
+          DEFAULT: "#F0562E",
+          50: "#FFF3EE",
+          100: "#FFE2D3",
+          200: "#FFC1A3",
+          300: "#FF9A6E",
+          400: "#FA7A4B",
+          500: "#F0562E",
+          600: "#DC4420",
+          700: "#B8351A",
+          800: "#8F2A16",
+          900: "#6E2212",
+        },
+        sidebar: {
+          DEFAULT: "#0F1533",
+          hover: "#1B2247",
+          active: "#242C58",
+          border: "#232A52",
+        },
         secondary: {
           DEFAULT: "#0F172A",
           50: "#F5F7FA",
@@ -71,6 +90,7 @@ export default {
         soft: "0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -8px rgba(15, 23, 42, 0.08)",
         softer: "0 1px 1px rgba(15, 23, 42, 0.03), 0 2px 8px -2px rgba(15, 23, 42, 0.06)",
         glow: "0 0 0 1px rgba(37, 99, 235, 0.08), 0 8px 32px -8px rgba(37, 99, 235, 0.25)",
+        "glow-accent": "0 0 0 1px rgba(240, 86, 46, 0.1), 0 8px 32px -8px rgba(240, 86, 46, 0.35)",
       },
       keyframes: {
         "fade-in": {
