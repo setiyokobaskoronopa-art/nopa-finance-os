@@ -33,7 +33,7 @@ interface SalesState {
   items: SalesOrder[];
   loading: boolean;
   fetchItems: () => Promise<void>;
-  addItem: (item: NewSalesOrder) => Promise<void>;
+  addItem: (item: NewSalesOrder) => Promise<string | null>;
   addManyItems: (items: NewSalesOrder[]) => Promise<{ successCount: number; errorMessage: string | null }>;
   removeItem: (id: string) => Promise<void>;
   removeAllItems: () => Promise<void>;
@@ -75,6 +75,7 @@ function itemRowToLineItem(row: Record<string, unknown>): OrderLineItem {
     hpp: Number(row.hpp),
     hargaJual: Number(row.harga_jual),
     hppSource: row.hpp_source as string,
+    stockReturnId: (row.stock_return_id as string) ?? null,
   };
 }
 
@@ -134,7 +135,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
 
   addItem: async (item) => {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return;
+    if (!userData.user) return null;
     const userId = userData.user.id;
 
     const { data: orderRow, error: orderError } = await supabase
@@ -144,7 +145,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
       .single();
     if (orderError || !orderRow) {
       console.error("[sales_orders] insert error:", orderError?.message);
-      return;
+      return null;
     }
 
     const lineItems = item.items ?? [];
@@ -157,6 +158,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
         hpp: li.hpp,
         harga_jual: li.hargaJual,
         hpp_source: li.hppSource,
+        stock_return_id: li.stockReturnId ?? null,
       }));
       const { error: itemsError } = await supabase.from("order_items").insert(rows);
       if (itemsError) console.error("[order_items] insert error:", itemsError.message);
@@ -168,7 +170,10 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
       hpp: li.hpp,
       harga_jual: li.hargaJual,
       hpp_source: li.hppSource,
+      stock_return_id: li.stockReturnId ?? null,
     })) }), ...state.items] }));
+
+    return orderRow.id as string;
   },
 
   addManyItems: async (items) => {
@@ -200,6 +205,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
           hpp: li.hpp,
           harga_jual: li.hargaJual,
           hpp_source: li.hppSource,
+          stock_return_id: li.stockReturnId ?? null,
         }));
         const { error: itemsError } = await supabase.from("order_items").insert(rows);
         if (itemsError) console.error("[order_items] bulk insert error:", itemsError.message);
@@ -213,6 +219,7 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
             hpp: li.hpp,
             harga_jual: li.hargaJual,
             hpp_source: li.hppSource,
+            stock_return_id: li.stockReturnId ?? null,
           })),
         })
       );
@@ -250,10 +257,35 @@ export const useSalesStore = create<SalesState>()((set, get) => ({
   updateItem: async (id, patch) => {
     const prev = get().items;
     set({ items: prev.map((i) => (i.id === id ? { ...i, ...patch } : i)) });
-    const { error } = await supabase.from("sales_orders").update(orderToRow(patch)).eq("id", id);
+
+    const { items: newLineItems, ...scalarPatch } = patch as Partial<SalesOrder> & { items?: OrderLineItem[] };
+    const { error } = await supabase.from("sales_orders").update(orderToRow(scalarPatch)).eq("id", id);
     if (error) {
       console.error("[sales_orders] update error:", error.message);
       set({ items: prev });
+      return;
+    }
+
+    // Sinkronkan order_items juga kalau line item ikut berubah (hapus lama, insert ulang yang baru)
+    if (newLineItems) {
+      const { data: userData } = await supabase.auth.getUser();
+      if (userData.user) {
+        await supabase.from("order_items").delete().eq("order_id", id);
+        if (newLineItems.length > 0) {
+          const rows = newLineItems.map((li) => ({
+            order_id: id,
+            user_id: userData.user!.id,
+            produk: li.produk,
+            box: li.box,
+            hpp: li.hpp,
+            harga_jual: li.hargaJual,
+            hpp_source: li.hppSource,
+            stock_return_id: li.stockReturnId ?? null,
+          }));
+          const { error: itemsError } = await supabase.from("order_items").insert(rows);
+          if (itemsError) console.error("[order_items] update sync error:", itemsError.message);
+        }
+      }
     }
   },
 }));

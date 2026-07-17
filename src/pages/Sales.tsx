@@ -11,6 +11,7 @@ import { sortByTanggalDesc } from "@/utils/sortByDate";
 import { Badge } from "@/components/ui/Badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { useSalesStore } from "@/store/entityStores";
+import { useStockReturnsStore } from "@/store/stockReturnsStore";
 import { getEffectiveGrossProvit } from "@/utils/businessCalc";
 import type { SalesOrder } from "@/data/pagesDummy";
 import type { KpiDatum, TableColumn } from "@/types/finance";
@@ -107,6 +108,7 @@ const columns: TableColumn<SalesOrder>[] = [
 export default function Sales() {
   const orders = useSalesStore((s) => s.items);
   const removeItem = useSalesStore((s) => s.removeItem);
+  const markStockReturnAvailable = useStockReturnsStore((s) => s.markAsAvailable);
   const removeAllItems = useSalesStore((s) => s.removeAllItems);
   const [open, setOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
@@ -235,7 +237,12 @@ export default function Sales() {
           setEditingOrder(row);
           setOpen(true);
         }}
-        onDelete={(row) => removeItem(row.id)}
+        onDelete={(row) => {
+          (row.items ?? []).forEach((li) => {
+            if (li.stockReturnId) markStockReturnAvailable(li.stockReturnId);
+          });
+          removeItem(row.id);
+        }}
         emptyTitle={filtersActive ? "Tidak ada order yang cocok" : "Belum ada order"}
         emptyDescription={filtersActive ? "Coba ubah atau reset filter kamu." : "Order penjualan yang kamu buat akan muncul di sini."}
       />

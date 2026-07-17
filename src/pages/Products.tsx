@@ -1,119 +1,75 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Link2, Plus } from "lucide-react";
+import { Link2, Plus, Pencil, Trash2, Package } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
-import { DataTable } from "@/components/shared/DataTable";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { KpiCard } from "@/components/dashboard/KpiCard";
+import { AddStockReturnDialog } from "@/components/dashboard/AddStockReturnDialog";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrency, formatNumber } from "@/utils/format";
 import { useSalesStore } from "@/store/entityStores";
-import { getAvailableStockReturn } from "@/utils/stockCalc";
-import type { KpiDatum, TableColumn, GenericRow } from "@/types/finance";
-
-interface StockRow extends GenericRow {
-  produk: string;
-  jumlahOrder: number;
-  unitTerjual: number;
-  totalReturn: number;
-  returnRate: string;
-  stockReturnTersedia: number;
-  totalHpp: number;
-}
-
-const columns: TableColumn<StockRow>[] = [
-  { key: "produk", header: "Produk" },
-  { key: "jumlahOrder", header: "Jumlah Order", align: "center" },
-  { key: "unitTerjual", header: "Unit Terjual (Box/Sachet)", align: "center", render: (r) => formatNumber(r.unitTerjual) },
-  {
-    key: "totalReturn",
-    header: "Total Return",
-    align: "center",
-    render: (r) => <Badge variant={r.totalReturn > 0 ? "danger" : "success"}>{r.totalReturn}</Badge>,
-  },
-  { key: "returnRate", header: "Return Rate", align: "center" },
-  {
-    key: "stockReturnTersedia",
-    header: "Stock Return Tersedia",
-    align: "center",
-    render: (r) => <Badge variant={r.stockReturnTersedia > 0 ? "warning" : "secondary"}>{r.stockReturnTersedia}</Badge>,
-  },
-  { key: "totalHpp", header: "Total HPP", align: "right", render: (r) => formatCurrency(r.totalHpp) },
-];
+import { useStockReturnsStore, type StockReturnItem } from "@/store/stockReturnsStore";
+import type { KpiDatum } from "@/types/finance";
 
 export default function Products() {
   const orders = useSalesStore((s) => s.items);
+  const stockReturns = useStockReturnsStore((s) => s.items);
+  const removeStockReturn = useStockReturnsStore((s) => s.removeItem);
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<StockReturnItem | null>(null);
 
-  const { kpis, rows } = useMemo(() => {
-    const grouped = new Map<string, StockRow>();
+  const kpis = useMemo<KpiDatum[]>(() => {
+    let totalUnit = 0;
+    let totalReturnOrder = 0;
+    let totalOrder = 0;
     for (const o of orders) {
-      const isReturn = o.status === "Return";
-      const items = o.items && o.items.length > 0 ? o.items : [{ produk: o.produk, box: o.box, hpp: o.hpp, hargaJual: o.hargaTotalProduk, hppSource: o.hppSource }];
+      const items = o.items && o.items.length > 0 ? o.items : [{ box: o.box }];
       for (const item of items) {
-        const key = item.produk.trim() || "Tanpa Nama Produk";
-        const unit = Number(item.box) || 0;
-        const existing = grouped.get(key);
-        if (existing) {
-          existing.jumlahOrder += 1;
-          existing.unitTerjual += unit;
-          existing.totalReturn += isReturn ? 1 : 0;
-          existing.totalHpp += item.hpp;
-        } else {
-          grouped.set(key, {
-            id: key,
-            produk: key,
-            jumlahOrder: 1,
-            unitTerjual: unit,
-            totalReturn: isReturn ? 1 : 0,
-            returnRate: "0%",
-            stockReturnTersedia: 0,
-            totalHpp: item.hpp,
-          });
-        }
+        totalUnit += Number(item.box) || 0;
+        totalOrder += 1;
       }
+      if (o.status === "Return") totalReturnOrder += 1;
     }
-    const rows = Array.from(grouped.values())
-      .map((r) => ({
-        ...r,
-        returnRate: r.jumlahOrder > 0 ? `${((r.totalReturn / r.jumlahOrder) * 100).toFixed(1)}%` : "0%",
-        stockReturnTersedia: getAvailableStockReturn(orders, r.produk),
-      }))
-      .sort((a, b) => b.unitTerjual - a.unitTerjual);
+    const returnRate = totalOrder > 0 ? `${((totalReturnOrder / totalOrder) * 100).toFixed(1)}%` : "0%";
+    const tersedia = stockReturns.filter((s) => s.status === "Tersedia").length;
 
-    const totalUnit = rows.reduce((s, r) => s + r.unitTerjual, 0);
-    const totalReturn = rows.reduce((s, r) => s + r.totalReturn, 0);
-    const totalOrder = rows.reduce((s, r) => s + r.jumlahOrder, 0);
-    const totalStockReturn = rows.reduce((s, r) => s + r.stockReturnTersedia, 0);
-    const returnRateAll = totalOrder > 0 ? `${((totalReturn / totalOrder) * 100).toFixed(1)}%` : "0%";
-    const terlaris = rows[0]?.produk ?? "-";
-
-    const kpis: KpiDatum[] = [
+    return [
       { id: "pr1", label: "Total Unit Terjual", value: formatNumber(totalUnit), icon: "Package", accent: "primary" },
-      { id: "pr2", label: "Total Return", value: String(totalReturn), icon: "AlertTriangle", accent: totalReturn > 0 ? "danger" : "secondary" },
-      { id: "pr3", label: "Return Rate", value: returnRateAll, icon: "Percent", accent: "warning" },
-      { id: "pr4", label: "Stock Return Tersedia", value: String(totalStockReturn), icon: "PackageCheck", accent: totalStockReturn > 0 ? "warning" : "secondary", footnote: "Siap dipakai ulang di order baru" },
+      { id: "pr2", label: "Total Return", value: String(totalReturnOrder), icon: "AlertTriangle", accent: totalReturnOrder > 0 ? "danger" : "secondary" },
+      { id: "pr3", label: "Return Rate", value: returnRate, icon: "Percent", accent: "warning" },
+      { id: "pr4", label: "Stock Return Tersedia", value: String(tersedia), icon: "PackageCheck", accent: tersedia > 0 ? "warning" : "secondary", footnote: "Siap dipakai ulang di order baru" },
     ];
-
-    return { kpis, rows };
-  }, [orders]);
+  }, [orders, stockReturns]);
 
   return (
     <div>
       <PageHeader
         title="Stok & Return"
-        description="Ringkasan unit terjual dan return per produk, otomatis dari data Penjualan."
+        description="Catat manual barang yang di-return, pakai ulang sebagai HPP Rp0 di order berikutnya."
         action={
-          <Button size="sm" onClick={() => navigate("/penjualan")}>
-            <Plus size={15} /> Buat Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/penjualan")}>
+              Ke Penjualan
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingItem(null);
+                setOpen(true);
+              }}
+            >
+              <Plus size={15} /> Catat Return
+            </Button>
+          </div>
         }
       />
 
       <div className="mb-6 flex items-center gap-2 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
         <Link2 size={14} className="shrink-0" />
-        Unit yang di-Return bisa dipakai ulang sebagai HPP Rp0 saat Buat Order baru di <strong className="mx-1">Penjualan</strong> — tersedia otomatis dihitung di sini.
+        Barang berstatus <strong className="mx-1">Tersedia</strong> bisa dipilih di form Buat/Edit Order (Penjualan) sebagai Stock Return — otomatis jadi <strong className="mx-1">Terpakai</strong> begitu dipakai, dan balik <strong className="mx-1">Tersedia</strong> kalau order itu diedit/dihapus.
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -125,18 +81,85 @@ export default function Products() {
       <div className="mt-6">
         <Card>
           <CardHeader>
-            <CardTitle>Ringkasan per Produk</CardTitle>
+            <CardTitle>Log Stock Return</CardTitle>
+            <span className="text-xs text-secondary-400">{stockReturns.length} catatan</span>
           </CardHeader>
           <CardContent className="p-0">
-            <DataTable
-              columns={columns}
-              rows={rows}
-              emptyTitle="Belum ada data"
-              emptyDescription="Buat order di halaman Penjualan untuk melihat stok & return di sini."
-            />
+            {stockReturns.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="Belum ada catatan return"
+                description="Klik 'Catat Return' untuk mencatat barang yang dikembalikan customer."
+                action={
+                  <Button size="sm" onClick={() => setOpen(true)}>
+                    <Plus size={14} /> Catat Return
+                  </Button>
+                }
+              />
+            ) : (
+              <div className="scrollbar-thin overflow-x-auto">
+                <table className="w-full min-w-[900px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-secondary-100 dark:border-secondary-800">
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">Produk</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">HPP</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">Harga Jual</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">ID Order</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">Resi Lama</th>
+                      <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-secondary-400">Resi Baru</th>
+                      <th className="px-5 py-3 text-center text-xs font-semibold uppercase tracking-wide text-secondary-400">Status</th>
+                      <th className="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-secondary-400">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockReturns.map((sr) => (
+                      <tr
+                        key={sr.id}
+                        className="group border-b border-secondary-50 transition-colors last:border-0 hover:bg-secondary-50/60 dark:border-secondary-800 dark:hover:bg-secondary-800/30"
+                      >
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">
+                          {sr.produk} — {sr.box} {sr.produk.startsWith("COFFIY") ? "Sachet" : "Box"}
+                        </td>
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{formatCurrency(sr.hpp)}</td>
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{formatCurrency(sr.hargaJual)}</td>
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{sr.idOrder || "-"}</td>
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{sr.resiLama || "-"}</td>
+                        <td className="px-5 py-3.5 text-secondary-700 dark:text-secondary-200">{sr.resiBaru || "-"}</td>
+                        <td className="px-5 py-3.5 text-center">
+                          <Badge variant={sr.status === "Tersedia" ? "success" : "secondary"}>{sr.status}</Badge>
+                        </td>
+                        <td className="px-5 py-3.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => {
+                                setEditingItem(sr);
+                                setOpen(true);
+                              }}
+                              className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-primary-50 hover:text-primary-600 group-hover:opacity-100 dark:hover:bg-primary-500/10"
+                              aria-label="Edit"
+                            >
+                              <Pencil size={15} />
+                            </button>
+                            <button
+                              onClick={() => removeStockReturn(sr.id)}
+                              className="rounded-lg p-1.5 text-secondary-300 opacity-0 transition-all hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100 dark:hover:bg-danger-500/10"
+                              aria-label="Hapus"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <AddStockReturnDialog open={open} onOpenChange={setOpen} editingItem={editingItem} />
     </div>
   );
 }

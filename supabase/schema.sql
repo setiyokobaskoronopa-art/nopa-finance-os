@@ -283,6 +283,31 @@ create policy "own everpro_callbacks" on public.everpro_callbacks for select usi
 -- (bukan lewat RLS biasa), karena Everpro yang kirim datanya, bukan user yang login.
 
 -- ----------------------------------------------------------------------------
+-- STOCK RETURNS (log manual barang yang di-return, bisa dipakai ulang di order baru)
+-- ----------------------------------------------------------------------------
+create table if not exists public.stock_returns (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  produk text not null,
+  box text not null default '1',
+  hpp numeric not null default 0,
+  harga_jual numeric not null default 0,
+  id_order text not null default '',
+  resi_lama text not null default '',
+  resi_baru text,
+  status text not null default 'Tersedia', -- Tersedia | Terpakai
+  used_by_order_id uuid references public.sales_orders(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+alter table public.stock_returns enable row level security;
+drop policy if exists "own stock_returns" on public.stock_returns;
+create policy "own stock_returns" on public.stock_returns for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Tambah kolom penghubung order_items -> stock_returns (baru bisa dibuat di sini
+-- karena tabel stock_returns baru selesai dibuat di atas)
+alter table public.order_items add column if not exists stock_return_id uuid references public.stock_returns(id) on delete set null;
+
+-- ----------------------------------------------------------------------------
 -- Storage bucket untuk foto profil (buat manual di menu Storage jika belum ada)
 -- ----------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)

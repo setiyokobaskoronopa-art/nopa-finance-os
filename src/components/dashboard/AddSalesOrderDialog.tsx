@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/Button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/Select";
 import { useSalesStore } from "@/store/entityStores";
 import { useAuthStore } from "@/store/authStore";
+import { useStockReturnsStore } from "@/store/stockReturnsStore";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { PRODUCT_PRICING, PRODUCT_NAMES } from "@/data/productPricing";
-import { getAvailableStockReturn } from "@/utils/stockCalc";
 import type { OrderLineItem, SalesOrder } from "@/data/pagesDummy";
 
 const COD_FEE_RATE = 0.03; // 3%
@@ -48,8 +48,10 @@ interface AddSalesOrderDialogProps {
 export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSalesOrderDialogProps) {
   const addItem = useSalesStore((s) => s.addItem);
   const updateItem = useSalesStore((s) => s.updateItem);
-  const allOrders = useSalesStore((s) => s.items);
   const profile = useAuthStore((s) => s.profile);
+  const stockReturns = useStockReturnsStore((s) => s.items);
+  const markStockReturnUsed = useStockReturnsStore((s) => s.markAsUsed);
+  const markStockReturnAvailable = useStockReturnsStore((s) => s.markAsAvailable);
   const isEditing = Boolean(editingOrder);
 
   const [cs, setCs] = useState(profile.name || "");
@@ -141,31 +143,31 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
 
   const handleProdukChange = (idx: number, produk: string) => {
     const tier = PRODUCT_PRICING[produk][0];
-    updateLineItem(idx, { produk, box: String(tier.box), hpp: tier.hpp, hargaJual: tier.hargaJual, hppSource: "Baru" });
+    updateLineItem(idx, { produk, box: String(tier.box), hpp: tier.hpp, hargaJual: tier.hargaJual, hppSource: "Baru", stockReturnId: null });
   };
 
   const handleBoxChange = (idx: number, boxValue: string) => {
     const item = lineItems[idx];
     const tier = PRODUCT_PRICING[item.produk]?.find((t) => String(t.box) === boxValue);
     if (tier) {
-      updateLineItem(idx, { box: boxValue, hpp: tier.hpp, hargaJual: tier.hargaJual, hppSource: "Baru" });
+      updateLineItem(idx, { box: boxValue, hpp: tier.hpp, hargaJual: tier.hargaJual, hppSource: "Baru", stockReturnId: null });
     }
   };
 
-  const handleToggleStockReturn = (idx: number, checked: boolean) => {
-    const item = lineItems[idx];
-    if (checked) {
-      updateLineItem(idx, { hpp: 0, hppSource: "Stock Return" });
-    } else {
+  const handleSelectStockReturn = (idx: number, stockReturnId: string) => {
+    if (stockReturnId === "none") {
+      const item = lineItems[idx];
       const tier = PRODUCT_PRICING[item.produk]?.find((t) => String(t.box) === item.box);
-      updateLineItem(idx, { hpp: tier?.hpp ?? 0, hppSource: "Baru" });
+      updateLineItem(idx, { hpp: tier?.hpp ?? 0, hppSource: "Baru", stockReturnId: null });
+      return;
     }
+    updateLineItem(idx, { hpp: 0, hppSource: "Stock Return", stockReturnId });
   };
 
   const addLineItem = () => setLineItems((prev) => [...prev, makeDefaultLineItem()]);
   const removeLineItem = (idx: number) => setLineItems((prev) => prev.filter((_, i) => i !== idx));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!namaCustomer.trim() || !hargaTotalProduk || lineItems.length === 0) return;
 
     const produkSummary = lineItems.map((i) => i.produk).join(" + ");
@@ -201,10 +203,31 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
       status,
     };
 
+    const resiBaru = awbNumber.trim() || null;
+    const newStockReturnIds = lineItems.map((i) => i.stockReturnId).filter((v): v is string => Boolean(v));
+
     if (isEditing && editingOrder) {
-      updateItem(editingOrder.id, { ...payload, tanggal });
+      const oldStockReturnIds = (editingOrder.items ?? [])
+        .map((i) => i.stockReturnId)
+        .filter((v): v is string => Boolean(v));
+
+      await updateItem(editingOrder.id, { ...payload, tanggal });
+
+      // Baris stock return yang dilepas (tidak dipakai lagi) -> balikin jadi Tersedia
+      for (const id of oldStockReturnIds) {
+        if (!newStockReturnIds.includes(id)) await markStockReturnAvailable(id);
+      }
+      // Baris yang masih/baru dipakai -> tandai Terpakai (sekalian sinkronkan Resi Baru terbaru)
+      for (const id of newStockReturnIds) {
+        await markStockReturnUsed(id, editingOrder.id, resiBaru);
+      }
     } else {
-      addItem({ ...payload, tanggal, externalOrderId: null });
+      const newOrderId = await addItem({ ...payload, tanggal, externalOrderId: null });
+      if (newOrderId) {
+        for (const id of newStockReturnIds) {
+          await markStockReturnUsed(id, newOrderId, resiBaru);
+        }
+      }
     }
 
     onOpenChange(false);
@@ -329,9 +352,12 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
               const boxOptions = PRODUCT_PRICING[item.produk] ?? [];
               const isCoffiy = item.produk.startsWith("COFFIY");
               const boxLabel = isCoffiy ? "Sachet" : "Box";
-              const available = getAvailableStockReturn(allOrders, item.produk);
-              const boxQty = Number(item.box) || 0;
-              const stockReturnUsable = available >= boxQty && boxQty > 0;
+              const availableForThisLine = stockReturns.filter(
+                (sr) =>
+                  sr.produk === item.produk &&
+                  sr.box === item.box &&
+                  (sr.status === "Tersedia" || sr.id === item.stockReturnId)
+              );
 
               return (
                 <div key={idx} className="rounded-2xl border border-secondary-200 p-3 dark:border-secondary-700">
@@ -374,24 +400,33 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
                     )}
                   </div>
 
-                  <label
-                    className={`mt-2.5 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[11px] ${
-                      stockReturnUsable
-                        ? "cursor-pointer border-secondary-200 hover:bg-secondary-50 dark:border-secondary-700 dark:hover:bg-secondary-800"
-                        : "cursor-not-allowed border-secondary-100 opacity-50 dark:border-secondary-800"
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={item.hppSource === "Stock Return"}
-                      disabled={!stockReturnUsable}
-                      onChange={(e) => handleToggleStockReturn(idx, e.target.checked)}
-                      className="h-3.5 w-3.5 rounded accent-primary-600"
-                    />
-                    <span className="text-secondary-600 dark:text-secondary-300">
-                      Gunakan Stock Return (tersedia {available}) — HPP: {formatCurrency(item.hpp)}
-                    </span>
-                  </label>
+                  <div className="mt-2.5">
+                    <label className="mb-1 block text-[11px] font-medium text-secondary-500">
+                      Stock Return {availableForThisLine.length === 0 && "(tidak ada yang tersedia untuk kombinasi ini)"}
+                    </label>
+                    <Select
+                      value={item.stockReturnId ?? "none"}
+                      onValueChange={(v) => handleSelectStockReturn(idx, v)}
+                      disabled={availableForThisLine.length === 0 && !item.stockReturnId}
+                    >
+                      <SelectTrigger className="h-9 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Tidak pakai Stock Return</SelectItem>
+                        {availableForThisLine.map((sr) => (
+                          <SelectItem key={sr.id} value={sr.id}>
+                            ID Order: {sr.idOrder || "-"} — HPP {formatCurrency(sr.hpp, { compact: true })}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {item.hppSource === "Stock Return" && (
+                      <p className="mt-1 text-[11px] text-success-600">
+                        Dipakai — HPP order ini jadi {formatCurrency(item.hpp)}
+                      </p>
+                    )}
+                  </div>
                 </div>
               );
             })}

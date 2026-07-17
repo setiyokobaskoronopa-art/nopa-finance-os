@@ -19,6 +19,7 @@ import {
   usePersonalTxStore,
 } from "@/store/entityStores";
 import { useBusinessMutationsStore } from "@/store/businessMutationsStore";
+import { useStockReturnsStore } from "@/store/stockReturnsStore";
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -43,6 +44,7 @@ export function DashboardLayout() {
     useReportsStore.getState().fetchItems();
     usePersonalTxStore.getState().fetchItems();
     useBusinessMutationsStore.getState().fetchItems();
+    useStockReturnsStore.getState().fetchItems();
   }, []);
 
   return (

@@ -50,6 +50,7 @@ export interface OrderLineItem {
   hpp: number;
   hargaJual: number;
   hppSource: string;
+  stockReturnId?: string | null;
 }
 
 export interface SalesOrder extends GenericRow {
