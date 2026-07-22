@@ -31,6 +31,7 @@ const PLATFORM_CONFIG: Record<
     secondaryPlaceholder?: string;
     disabled?: boolean;
     disabledNote?: string;
+    hasConversionsApi?: boolean;
   }
 > = {
   "Meta Ads": {
@@ -39,6 +40,7 @@ const PLATFORM_CONFIG: Record<
     tokenLabel: "Access Token",
     tokenPlaceholder: "System User Access Token dari Business Settings",
     hasSecondary: false,
+    hasConversionsApi: true,
   },
   "TikTok Ads": {
     accountLabel: "Advertiser ID",
@@ -68,17 +70,28 @@ export function ConnectAdPlatformDialog({ open, onOpenChange, platform, existing
   const [accountId, setAccountId] = useState("");
   const [accessToken, setAccessToken] = useState("");
   const [secondaryToken, setSecondaryToken] = useState("");
+  const [pixelId, setPixelId] = useState("");
+  const [pixelAccessToken, setPixelAccessToken] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setAccountId(existing?.accountId ?? "");
     setAccessToken(existing?.accessToken ?? "");
     setSecondaryToken(existing?.secondaryToken ?? "");
+    setPixelId(existing?.pixelId ?? "");
+    setPixelAccessToken(existing?.pixelAccessToken ?? "");
   }, [open, existing]);
 
   const handleSave = () => {
     if (!accountId.trim() || !accessToken.trim()) return;
-    saveConnection(platform, accountId.trim(), accessToken.trim(), config.hasSecondary ? secondaryToken.trim() : null);
+    saveConnection(
+      platform,
+      accountId.trim(),
+      accessToken.trim(),
+      config.hasSecondary ? secondaryToken.trim() : null,
+      config.hasConversionsApi ? pixelId.trim() || null : null,
+      config.hasConversionsApi ? pixelAccessToken.trim() || null : null
+    );
     onOpenChange(false);
   };
 
@@ -126,6 +139,33 @@ export function ConnectAdPlatformDialog({ open, onOpenChange, platform, existing
                 onChange={(e) => setSecondaryToken(e.target.value)}
                 placeholder={config.secondaryPlaceholder}
               />
+            </div>
+          )}
+
+          {config.hasConversionsApi && (
+            <div className="border-t border-secondary-100 pt-4 dark:border-secondary-800">
+              <p className="mb-1 text-xs font-semibold text-secondary-700 dark:text-secondary-200">
+                Conversions API <span className="font-normal text-secondary-400">— opsional</span>
+              </p>
+              <p className="mb-3 text-[11px] text-secondary-400">
+                Isi ini kalau mau kirim data pembelian (No. WA di-hash otomatis) ke Meta setiap ada order baru, biar
+                campaign berikutnya makin akurat.
+              </p>
+              <div className="space-y-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-secondary-500">Pixel ID</label>
+                  <Input value={pixelId} onChange={(e) => setPixelId(e.target.value)} placeholder="Contoh: 1971032336655616" />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-secondary-500">Pixel Access Token</label>
+                  <Input
+                    type="password"
+                    value={pixelAccessToken}
+                    onChange={(e) => setPixelAccessToken(e.target.value)}
+                    placeholder="Dari Events Manager > Pengaturan"
+                  />
+                </div>
+              </div>
             </div>
           )}
         </div>

@@ -9,6 +9,8 @@ export interface AdConnection {
   accountId: string;
   accessToken: string;
   secondaryToken: string | null;
+  pixelId: string | null;
+  pixelAccessToken: string | null;
   connectedAt: string;
 }
 
@@ -20,7 +22,9 @@ interface AdConnectionsState {
     platform: AdPlatform,
     accountId: string,
     accessToken: string,
-    secondaryToken?: string | null
+    secondaryToken?: string | null,
+    pixelId?: string | null,
+    pixelAccessToken?: string | null
   ) => Promise<void>;
   disconnect: (platform: AdPlatform) => Promise<void>;
   getByPlatform: (platform: AdPlatform) => AdConnection | undefined;
@@ -33,6 +37,8 @@ function fromRow(row: Record<string, unknown>): AdConnection {
     accountId: row.account_id as string,
     accessToken: row.access_token as string,
     secondaryToken: (row.secondary_token as string) ?? null,
+    pixelId: (row.pixel_id as string) ?? null,
+    pixelAccessToken: (row.pixel_access_token as string) ?? null,
     connectedAt: row.connected_at as string,
   };
 }
@@ -57,7 +63,7 @@ export const useAdConnectionsStore = create<AdConnectionsState>()((set, get) => 
     set({ items: (data ?? []).map(fromRow), loading: false });
   },
 
-  saveConnection: async (platform, accountId, accessToken, secondaryToken = null) => {
+  saveConnection: async (platform, accountId, accessToken, secondaryToken = null, pixelId = null, pixelAccessToken = null) => {
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
     const prev = get().items;
@@ -71,6 +77,8 @@ export const useAdConnectionsStore = create<AdConnectionsState>()((set, get) => 
           account_id: accountId,
           access_token: accessToken,
           secondary_token: secondaryToken,
+          pixel_id: pixelId,
+          pixel_access_token: pixelAccessToken,
           connected_at: new Date().toISOString(),
         },
         { onConflict: "user_id,platform" }

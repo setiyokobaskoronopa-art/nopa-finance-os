@@ -367,9 +367,13 @@ create table if not exists public.ad_connections (
   account_id text not null default '',
   access_token text not null default '',
   secondary_token text, -- khusus Google Ads: Developer Token (access_token dipakai buat Refresh Token)
+  pixel_id text, -- khusus Meta Ads: buat Conversions API (opsional)
+  pixel_access_token text, -- khusus Meta Ads: token Pixel buat Conversions API (opsional)
   connected_at timestamptz not null default now(),
   unique (user_id, platform)
 );
+alter table public.ad_connections add column if not exists pixel_id text;
+alter table public.ad_connections add column if not exists pixel_access_token text;
 alter table public.ad_connections enable row level security;
 drop policy if exists "own ad_connections" on public.ad_connections;
 create policy "own ad_connections" on public.ad_connections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

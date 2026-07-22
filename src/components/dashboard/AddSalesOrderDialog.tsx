@@ -18,10 +18,29 @@ import { useAuthStore } from "@/store/authStore";
 import { useStockReturnsStore } from "@/store/stockReturnsStore";
 import { formatCurrency, formatDateSlash } from "@/utils/format";
 import { PRODUCT_PRICING, PRODUCT_NAMES } from "@/data/productPricing";
+import { supabase } from "@/lib/supabase";
 import type { OrderLineItem, SalesOrder } from "@/data/pagesDummy";
 
 const COD_FEE_RATE = 0.03; // 3%
 const COD_TAX_RATE = 0.0033; // 0.33% (dihitung dari data aktual laporan kamu)
+
+// Kirim event Purchase ke Meta Conversions API - fire-and-forget, tidak pernah
+// melempar error yang mengganggu alur pembuatan order (kalau gagal, cukup log
+// ke console saja).
+async function sendMetaConversionEvent(payload: { namaCustomer: string; noWa: string; amount: number; orderId: string }) {
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData.session?.access_token;
+    if (!token) return;
+    await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-conversions-send`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  } catch (err) {
+    console.warn("[meta-conversions-send] gagal kirim (diabaikan):", err);
+  }
+}
 
 const EKSPEDIS_OPTIONS = ["JNE", "J&T", "SICEPAT", "LION", "POS", "GOJEK"];
 const METODE_OPTIONS = ["Transfer", "COD", "Kredit"];
@@ -234,6 +253,10 @@ export function AddSalesOrderDialog({ open, onOpenChange, editingOrder }: AddSal
         if (status === "Return") {
           await autoLogFromOrder(newOrderId, lineItems, resiBaru);
         }
+        // Kirim event Purchase ke Meta Conversions API (kalau sudah dikonfigurasi).
+        // Fire-and-forget - tidak menghambat proses buat order, dan tidak menampilkan
+        // error ke user kalau gagal (misal belum setup Pixel).
+        sendMetaConversionEvent({ namaCustomer: payload.namaCustomer, noWa: payload.noWa, amount: preview.totalBayar, orderId: newOrderId });
       }
     }
 
