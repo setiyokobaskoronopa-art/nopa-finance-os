@@ -335,6 +335,28 @@ drop policy if exists "own customers" on public.customers;
 create policy "own customers" on public.customers for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ----------------------------------------------------------------------------
+-- AD PERFORMANCE (catat performa campaign Meta Ads / Google Ads - manual dulu,
+-- Meta Ads rencana disambung API nanti)
+-- ----------------------------------------------------------------------------
+create table if not exists public.ad_performance (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  platform text not null default 'Meta Ads',
+  nama_campaign text not null,
+  tanggal text not null,
+  spend numeric not null default 0,
+  impressions numeric not null default 0,
+  clicks numeric not null default 0,
+  conversions numeric not null default 0,
+  revenue numeric not null default 0,
+  sumber text not null default 'Manual',
+  created_at timestamptz not null default now()
+);
+alter table public.ad_performance enable row level security;
+drop policy if exists "own ad_performance" on public.ad_performance;
+create policy "own ad_performance" on public.ad_performance for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ----------------------------------------------------------------------------
 -- Storage bucket untuk foto profil (buat manual di menu Storage jika belum ada)
 -- ----------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)

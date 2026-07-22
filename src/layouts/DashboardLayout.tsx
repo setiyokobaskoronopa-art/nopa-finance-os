@@ -23,6 +23,7 @@ import { useStockReturnsStore } from "@/store/stockReturnsStore";
 import { computeMonthlySnapshot, monthLabel } from "@/utils/monthlyReportSnapshot";
 import { formatDateSlash } from "@/utils/format";
 import { useCustomersMetaStore } from "@/store/customersMetaStore";
+import { useAdPerformanceStore } from "@/store/adPerformanceStore";
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -52,6 +53,7 @@ export function DashboardLayout() {
         useBusinessMutationsStore.getState().fetchItems(),
         useStockReturnsStore.getState().fetchItems(),
         useCustomersMetaStore.getState().fetchItems(),
+        useAdPerformanceStore.getState().fetchItems(),
       ]);
 
       const now = new Date();

@@ -12,6 +12,7 @@ import CustomerDetail from "@/pages/CustomerDetail";
 import Suppliers from "@/pages/Suppliers";
 import Accounts from "@/pages/Accounts";
 import BudgetPage from "@/pages/BudgetPage";
+import AdPerformance from "@/pages/AdPerformance";
 import Investment from "@/pages/Investment";
 import Assets from "@/pages/Assets";
 import Goals from "@/pages/Goals";
@@ -57,6 +58,7 @@ function App() {
         <Route path="/supplier" element={<Suppliers />} />
         <Route path="/rekening" element={<Accounts />} />
         <Route path="/budget" element={<BudgetPage />} />
+        <Route path="/performa-ads" element={<AdPerformance />} />
         <Route path="/investasi" element={<Investment />} />
         <Route path="/aset" element={<Assets />} />
         <Route path="/target" element={<Goals />} />
