@@ -352,6 +352,7 @@ create table if not exists public.ad_performance (
   sumber text not null default 'Manual',
   created_at timestamptz not null default now()
 );
+create unique index if not exists ad_performance_unique_row on public.ad_performance (user_id, platform, nama_campaign, tanggal);
 alter table public.ad_performance enable row level security;
 drop policy if exists "own ad_performance" on public.ad_performance;
 create policy "own ad_performance" on public.ad_performance for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

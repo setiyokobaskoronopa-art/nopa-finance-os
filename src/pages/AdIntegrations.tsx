@@ -1,15 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Radio, Search, Music2, CheckCircle2, PlugZap, Clock } from "lucide-react";
+import { ArrowLeft, Radio, Search, Music2, CheckCircle2, PlugZap, Clock, RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ConnectAdPlatformDialog } from "@/components/dashboard/ConnectAdPlatformDialog";
 import { useAdConnectionsStore, type AdPlatform } from "@/store/adConnectionsStore";
+import { useAdPerformanceStore } from "@/store/adPerformanceStore";
+import { supabase } from "@/lib/supabase";
 
-const PLATFORMS: { platform: AdPlatform; icon: React.ElementType; color: string; desc: string; pending?: boolean }[] = [
-  { platform: "Meta Ads", icon: Radio, color: "#1877F2", desc: "Facebook & Instagram Ads Manager" },
+const PLATFORMS: { platform: AdPlatform; icon: React.ElementType; color: string; desc: string; pending?: boolean; syncable?: boolean }[] = [
+  { platform: "Meta Ads", icon: Radio, color: "#1877F2", desc: "Facebook & Instagram Ads Manager", syncable: true },
   { platform: "TikTok Ads", icon: Music2, color: "#000000", desc: "TikTok for Business" },
   { platform: "Google Ads", icon: Search, color: "#4285F4", desc: "Menunggu approval Basic Access", pending: true },
 ];
@@ -17,9 +19,41 @@ const PLATFORMS: { platform: AdPlatform; icon: React.ElementType; color: string;
 export default function AdIntegrations() {
   const navigate = useNavigate();
   const connections = useAdConnectionsStore((s) => s.items);
+  const fetchAdPerformance = useAdPerformanceStore((s) => s.fetchItems);
   const [dialogPlatform, setDialogPlatform] = useState<AdPlatform | null>(null);
+  const [syncing, setSyncing] = useState<AdPlatform | null>(null);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const getConnection = (platform: AdPlatform) => connections.find((c) => c.platform === platform);
+
+  const handleSync = async (platform: AdPlatform) => {
+    setSyncing(platform);
+    setSyncMessage(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) {
+        setSyncMessage("Sesi login tidak ditemukan, coba refresh halaman.");
+        return;
+      }
+      const functionName = platform === "Meta Ads" ? "meta-ads-sync" : "";
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setSyncMessage(json.error || "Sinkron gagal, coba lagi.");
+        return;
+      }
+      setSyncMessage(`Berhasil sinkron ${json.synced ?? 0} baris data.`);
+      await fetchAdPerformance();
+    } catch (err) {
+      setSyncMessage(`Terjadi kesalahan: ${(err as Error).message}`);
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   return (
     <div>
@@ -32,10 +66,17 @@ export default function AdIntegrations() {
         description="Hubungkan akun Meta Ads, Google Ads, dan TikTok Ads untuk tarik data performa otomatis."
       />
 
+      {syncMessage && (
+        <div className="mt-4 rounded-2xl border border-primary-100 bg-primary-50/60 px-4 py-3 text-xs text-primary-700 dark:border-primary-500/20 dark:bg-primary-500/5 dark:text-primary-300">
+          {syncMessage}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {PLATFORMS.map(({ platform, icon: Icon, color, desc, pending }) => {
+        {PLATFORMS.map(({ platform, icon: Icon, color, desc, pending, syncable }) => {
           const conn = getConnection(platform);
           const isConnected = Boolean(conn);
+          const isSyncing = syncing === platform;
 
           return (
             <Card key={platform}>
@@ -69,14 +110,22 @@ export default function AdIntegrations() {
                   </p>
                 )}
 
-                <Button
-                  size="sm"
-                  variant={isConnected ? "outline" : "default"}
-                  className="mt-4 w-full"
-                  onClick={() => setDialogPlatform(platform)}
-                >
-                  <PlugZap size={14} /> {isConnected ? "Kelola Koneksi" : "Hubungkan"}
-                </Button>
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    size="sm"
+                    variant={isConnected ? "outline" : "default"}
+                    className="flex-1"
+                    onClick={() => setDialogPlatform(platform)}
+                  >
+                    <PlugZap size={14} /> {isConnected ? "Kelola" : "Hubungkan"}
+                  </Button>
+                  {isConnected && syncable && (
+                    <Button size="sm" onClick={() => handleSync(platform)} disabled={isSyncing} className="flex-1">
+                      <RefreshCw size={14} className={isSyncing ? "animate-spin" : ""} />
+                      {isSyncing ? "Sinkron..." : "Sinkron"}
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           );
