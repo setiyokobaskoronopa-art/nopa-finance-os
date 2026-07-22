@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
-import { Megaphone, Radio, Search, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Megaphone, Radio, Search, Sparkles, Settings2 } from "lucide-react";
 import { FinancePageTemplate } from "@/components/shared/FinancePageTemplate";
 import { EntityFormDialog, type FieldConfig } from "@/components/shared/EntityFormDialog";
 import { TableFilterBar, FILTER_ALL } from "@/components/shared/TableFilterBar";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { formatCurrency, formatDateSlash, parseDateSlash, formatNumber } from "@/utils/format";
 import { sortByTanggalDesc } from "@/utils/sortByDate";
 import { useAdPerformanceStore, type AdPerformanceItem } from "@/store/adPerformanceStore";
@@ -29,6 +31,7 @@ function platformIcon(platform: string) {
 }
 
 export default function AdPerformance() {
+  const navigate = useNavigate();
   const rows = useAdPerformanceStore((s) => s.items);
   const addItem = useAdPerformanceStore((s) => s.addItem);
   const updateItem = useAdPerformanceStore((s) => s.updateItem);
@@ -169,6 +172,12 @@ export default function AdPerformance() {
 
   return (
     <div>
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => navigate("/performa-ads/integrasi")}>
+          <Settings2 size={15} /> Kelola Integrasi Platform
+        </Button>
+      </div>
+
       <TableFilterBar
         searchValue={search}
         onSearchChange={setSearch}

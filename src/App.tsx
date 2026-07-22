@@ -13,6 +13,7 @@ import Suppliers from "@/pages/Suppliers";
 import Accounts from "@/pages/Accounts";
 import BudgetPage from "@/pages/BudgetPage";
 import AdPerformance from "@/pages/AdPerformance";
+import AdIntegrations from "@/pages/AdIntegrations";
 import Investment from "@/pages/Investment";
 import Assets from "@/pages/Assets";
 import Goals from "@/pages/Goals";
@@ -59,6 +60,7 @@ function App() {
         <Route path="/rekening" element={<Accounts />} />
         <Route path="/budget" element={<BudgetPage />} />
         <Route path="/performa-ads" element={<AdPerformance />} />
+        <Route path="/performa-ads/integrasi" element={<AdIntegrations />} />
         <Route path="/investasi" element={<Investment />} />
         <Route path="/aset" element={<Assets />} />
         <Route path="/target" element={<Goals />} />

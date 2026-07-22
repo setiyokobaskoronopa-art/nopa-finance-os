@@ -24,6 +24,7 @@ import { computeMonthlySnapshot, monthLabel } from "@/utils/monthlyReportSnapsho
 import { formatDateSlash } from "@/utils/format";
 import { useCustomersMetaStore } from "@/store/customersMetaStore";
 import { useAdPerformanceStore } from "@/store/adPerformanceStore";
+import { useAdConnectionsStore } from "@/store/adConnectionsStore";
 
 export function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -54,6 +55,7 @@ export function DashboardLayout() {
         useStockReturnsStore.getState().fetchItems(),
         useCustomersMetaStore.getState().fetchItems(),
         useAdPerformanceStore.getState().fetchItems(),
+        useAdConnectionsStore.getState().fetchItems(),
       ]);
 
       const now = new Date();

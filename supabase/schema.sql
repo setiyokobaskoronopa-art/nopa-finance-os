@@ -357,6 +357,23 @@ drop policy if exists "own ad_performance" on public.ad_performance;
 create policy "own ad_performance" on public.ad_performance for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- ----------------------------------------------------------------------------
+-- AD CONNECTIONS (kredensial buat sambung ke Meta Ads / Google Ads / TikTok Ads)
+-- ----------------------------------------------------------------------------
+create table if not exists public.ad_connections (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  platform text not null, -- 'Meta Ads' | 'Google Ads' | 'TikTok Ads'
+  account_id text not null default '',
+  access_token text not null default '',
+  secondary_token text, -- khusus Google Ads: Developer Token (access_token dipakai buat Refresh Token)
+  connected_at timestamptz not null default now(),
+  unique (user_id, platform)
+);
+alter table public.ad_connections enable row level security;
+drop policy if exists "own ad_connections" on public.ad_connections;
+create policy "own ad_connections" on public.ad_connections for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ----------------------------------------------------------------------------
 -- Storage bucket untuk foto profil (buat manual di menu Storage jika belum ada)
 -- ----------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
